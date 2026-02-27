@@ -1,0 +1,640 @@
+// ============================================================
+// REVAULTX — PILL COMPONENT SYSTEM
+// Base classes for all pill-shaped UI elements
+// ============================================================
+
+// ── Pill Button ───────────────────────────────────────────────
+
+.pill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: var(--pill-radius-full);
+  border: none;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  text-decoration: none;
+  outline: none;
+
+  &:focus-visible {
+    box-shadow: 0 0 0 3px var(--border-focus);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  // Ripple effect
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    animation: ripple 600ms ease-out;
+    pointer-events: none;
+  }
+
+  // Variants
+  &.pill-btn-primary {
+    background: var(--accent-primary);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
+
+    &:hover {
+      background: #818cf8;
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+      transform: translateY(-1px);
+    }
+  }
+
+  &.pill-btn-secondary {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border: 1px solid var(--border-default);
+
+    &:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent-primary);
+    }
+  }
+
+  &.pill-btn-danger {
+    background: var(--accent-danger);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+
+    &:hover {
+      background: #f87171;
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+      transform: translateY(-1px);
+    }
+  }
+
+  &.pill-btn-success {
+    background: var(--accent-success);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+
+    &:hover {
+      background: #34d399;
+      transform: translateY(-1px);
+    }
+  }
+
+  &.pill-btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+
+    &:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+  }
+
+  &.pill-btn-outline {
+    background: transparent;
+    color: var(--accent-primary);
+    border: 1px solid var(--accent-primary);
+
+    &:hover {
+      background: rgba(99, 102, 241, 0.1);
+    }
+  }
+
+  // Sizes
+  &.pill-btn-sm {
+    padding: 6px 14px;
+    font-size: var(--font-size-sm);
+  }
+
+  &.pill-btn-lg {
+    padding: 14px 28px;
+    font-size: var(--font-size-md);
+  }
+
+  &.pill-btn-icon {
+    padding: 10px;
+    width: 40px;
+    height: 40px;
+
+    &.pill-btn-sm { width: 32px; height: 32px; padding: 6px; }
+    &.pill-btn-lg { width: 48px; height: 48px; padding: 12px; }
+  }
+
+  // Loading state
+  &.loading {
+    pointer-events: none;
+    opacity: 0.8;
+
+    .btn-text { opacity: 0; }
+    .btn-spinner {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spinnerRotate 0.8s linear infinite;
+    }
+  }
+}
+
+// ── Pill Input ────────────────────────────────────────────────
+
+.pill-input-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .pill-label {
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--text-secondary);
+    padding-left: 4px;
+  }
+
+  .pill-input-inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .pill-input {
+    width: 100%;
+    padding: 12px 20px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--pill-radius-full);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-size: var(--font-size-base);
+    transition: all var(--transition-fast);
+    outline: none;
+
+    &::placeholder {
+      color: var(--text-muted);
+    }
+
+    &:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+      background: var(--bg-surface);
+    }
+
+    &.has-icon-left  { padding-left: 44px; }
+    &.has-icon-right { padding-right: 44px; }
+    &.has-both       { padding-left: 44px; padding-right: 44px; }
+
+    &.error {
+      border-color: var(--accent-danger);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+    }
+
+    &.success {
+      border-color: var(--accent-success);
+    }
+  }
+
+  .pill-input-icon {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+
+    &.icon-left  { left: 16px; }
+    &.icon-right { right: 16px; pointer-events: auto; cursor: pointer; }
+  }
+
+  .pill-input-hint {
+    font-size: var(--font-size-xs);
+    color: var(--text-muted);
+    padding-left: 4px;
+  }
+
+  .pill-input-error {
+    font-size: var(--font-size-xs);
+    color: var(--accent-danger);
+    padding-left: 4px;
+    animation: slideUpFade 200ms ease both;
+  }
+}
+
+// ── Pill Card ─────────────────────────────────────────────────
+
+.pill-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--pill-radius-lg);
+  padding: 20px 24px;
+  transition: all var(--transition-base);
+
+  &.hoverable {
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--border-default);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      transform: translateY(-2px);
+    }
+  }
+
+  &.active {
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.2),
+                0 8px 24px rgba(99, 102, 241, 0.1);
+  }
+
+  &.pill-card-sm {
+    padding: 12px 16px;
+    border-radius: var(--pill-radius-md);
+  }
+
+  &.pill-card-lg {
+    padding: 28px 32px;
+    border-radius: var(--pill-radius-xl);
+  }
+}
+
+// ── Pill Badge ────────────────────────────────────────────────
+
+.pill-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: var(--pill-radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+
+  &.badge-primary   { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
+  &.badge-success   { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+  &.badge-warning   { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+  &.badge-danger    { background: rgba(239, 68, 68, 0.15);  color: #f87171; }
+  &.badge-info      { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+  &.badge-secondary { background: var(--bg-elevated);       color: var(--text-secondary); border: 1px solid var(--border-default); }
+
+  &.badge-dot::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+}
+
+// ── Pill Chip (interactive filter) ───────────────────────────
+
+.pill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: var(--pill-radius-full);
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  user-select: none;
+
+  &:hover {
+    border-color: var(--accent-primary);
+    color: var(--text-primary);
+  }
+
+  &.active {
+    background: rgba(99, 102, 241, 0.15);
+    border-color: var(--accent-primary);
+    color: #818cf8;
+  }
+
+  .chip-remove {
+    display: flex;
+    align-items: center;
+    opacity: 0.6;
+    transition: opacity var(--transition-fast);
+
+    &:hover { opacity: 1; }
+  }
+}
+
+// ── Pill Toggle Switch ────────────────────────────────────────
+
+.pill-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+
+  input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .toggle-track {
+    width: 44px;
+    height: 24px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--pill-radius-full);
+    transition: all var(--transition-base);
+    position: relative;
+    flex-shrink: 0;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 16px;
+      height: 16px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      transition: all var(--transition-base);
+    }
+  }
+
+  input:checked + .toggle-track {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 8px rgba(99, 102, 241, 0.4);
+
+    &::after {
+      left: calc(100% - 19px);
+      background: #fff;
+    }
+  }
+
+  .toggle-label {
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+    transition: color var(--transition-fast);
+  }
+
+  &:hover .toggle-label { color: var(--text-primary); }
+}
+
+// ── Pill Panel (large container) ─────────────────────────────
+
+.pill-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--pill-radius-xl);
+  overflow: hidden;
+
+  .pill-panel-header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .pill-panel-body {
+    padding: 24px 28px;
+  }
+
+  .pill-panel-footer {
+    padding: 16px 28px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+  }
+}
+
+// ── Strength Meter ────────────────────────────────────────────
+
+.strength-meter {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  .strength-bar {
+    display: flex;
+    gap: 4px;
+
+    .strength-segment {
+      flex: 1;
+      height: 6px;
+      border-radius: var(--pill-radius-full);
+      background: var(--bg-elevated);
+      transition: background var(--transition-base);
+
+      &.filled-1 { background: var(--accent-danger); }
+      &.filled-2 { background: var(--accent-orange); }
+      &.filled-3 { background: var(--accent-warning); }
+      &.filled-4 { background: #84cc16; }
+      &.filled-5 { background: var(--accent-success); }
+    }
+  }
+
+  .strength-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .label-text {
+      font-size: var(--font-size-xs);
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .label-score {
+      font-size: var(--font-size-xs);
+      color: var(--text-muted);
+    }
+  }
+}
+
+// ── Skeleton Loader ───────────────────────────────────────────
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-elevated) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-elevated) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--pill-radius-md);
+
+  &.skeleton-text {
+    height: 14px;
+    border-radius: var(--pill-radius-full);
+  }
+
+  &.skeleton-title {
+    height: 20px;
+    width: 60%;
+    border-radius: var(--pill-radius-full);
+  }
+
+  &.skeleton-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+
+  &.skeleton-card {
+    height: 80px;
+    border-radius: var(--pill-radius-lg);
+  }
+}
+
+// ── Copy Button ───────────────────────────────────────────────
+
+.copy-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--pill-radius-full);
+  border: 1px solid var(--border-default);
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+    background: rgba(99, 102, 241, 0.1);
+  }
+
+  &.copied {
+    border-color: var(--accent-success);
+    color: var(--accent-success);
+    background: rgba(16, 185, 129, 0.1);
+  }
+}
+
+// ── Avatar ────────────────────────────────────────────────────
+
+.pill-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+
+  &.avatar-sm  { width: 28px; height: 28px; font-size: 11px; }
+  &.avatar-md  { width: 36px; height: 36px; font-size: 13px; }
+  &.avatar-lg  { width: 48px; height: 48px; font-size: 16px; }
+  &.avatar-xl  { width: 64px; height: 64px; font-size: 20px; }
+
+  .avatar-status {
+    position: absolute;
+    bottom: 1px;
+    right: 1px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-surface);
+
+    &.online  { background: var(--accent-success); }
+    &.offline { background: var(--text-muted); }
+    &.away    { background: var(--accent-warning); }
+  }
+}
+
+// ── Divider ───────────────────────────────────────────────────
+
+.pill-divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 16px 0;
+
+  &.pill-divider-text {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: auto;
+    background: none;
+
+    &::before, &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border-subtle);
+    }
+
+    span {
+      font-size: var(--font-size-xs);
+      color: var(--text-muted);
+      white-space: nowrap;
+    }
+  }
+}
+
+// ── Empty State ───────────────────────────────────────────────
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  gap: 16px;
+
+  .empty-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: var(--pill-radius-lg);
+    background: var(--bg-elevated);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    animation: pillFloat 3s ease-in-out infinite;
+  }
+
+  .empty-title {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .empty-message {
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+    max-width: 320px;
+    line-height: 1.6;
+  }
+}
