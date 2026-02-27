@@ -1,5 +1,6 @@
 package com.revature.passwordmanager.service.security.breach;
 
+import com.revature.passwordmanager.model.security.breach.BreachCheckResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -78,6 +79,47 @@ public class HaveIBeenPwnedClient {
         } catch (NoSuchAlgorithmException e) {
             logger.error("SHA-1 algorithm unavailable", e);
             return "";
+        }
+    }
+
+    /**
+     * Checks the given plain-text password for a specific vault entry and returns a
+     * structured {@link BreachCheckResult} — the preferred method for scan loops because
+     * it captures error state, hash prefix, and entry metadata in one object.
+     *
+     * @param vaultEntryId the id of the vault entry being checked
+     * @param entryTitle   the title of the vault entry (for display in results)
+     * @param password     the plain-text decrypted password
+     * @return a fully populated {@link BreachCheckResult}
+     */
+    public BreachCheckResult checkPasswordForEntry(Long vaultEntryId, String entryTitle, String password) {
+        if (password == null || password.isBlank()) {
+            return BreachCheckResult.clean(vaultEntryId, entryTitle, "");
+        }
+        String hashPrefix = "";
+        try {
+            String sha1 = sha1Hex(password).toUpperCase();
+            hashPrefix = sha1.substring(0, 5);
+            String suffix = sha1.substring(5);
+
+            String responseBody = restTemplate.getForObject(HIBP_RANGE_URL + hashPrefix, String.class);
+            if (responseBody == null || responseBody.isBlank()) {
+                return BreachCheckResult.clean(vaultEntryId, entryTitle, hashPrefix);
+            }
+
+            long count = parseCount(responseBody, suffix);
+            if (count > 0) {
+                return BreachCheckResult.compromised(vaultEntryId, entryTitle, hashPrefix, count);
+            }
+            return BreachCheckResult.clean(vaultEntryId, entryTitle, hashPrefix);
+
+        } catch (RestClientException e) {
+            logger.warn("HIBP API call failed for entry {} — treating as inconclusive: {}",
+                    vaultEntryId, e.getMessage());
+            return BreachCheckResult.failed(vaultEntryId, entryTitle, "HIBP API unavailable: " + e.getMessage());
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("SHA-1 algorithm unavailable", e);
+            return BreachCheckResult.failed(vaultEntryId, entryTitle, "SHA-1 unavailable");
         }
     }
 

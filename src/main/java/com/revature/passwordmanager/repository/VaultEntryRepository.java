@@ -48,4 +48,7 @@ public interface VaultEntryRepository extends JpaRepository<VaultEntry, Long> {
         List<VaultEntry> findTop10ByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(Long userId);
 
         List<VaultEntry> findTop10ByUserIdAndIsDeletedFalseOrderByUpdatedAtDesc(Long userId);
+
+        /** Returns ALL entries for a user including deleted ones (for timeline/history lookups). */
+        List<VaultEntry> findByUserId(Long userId);
 }

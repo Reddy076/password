@@ -32,6 +32,12 @@ class VaultTrashServiceTest {
   private VaultTrashRepository vaultTrashRepository;
   @Mock
   private UserRepository userRepository;
+  @Mock
+  private com.revature.passwordmanager.repository.VaultSnapshotRepository vaultSnapshotRepository;
+  @Mock
+  private com.revature.passwordmanager.repository.PasswordAnalysisRepository passwordAnalysisRepository;
+  @Mock
+  private com.revature.passwordmanager.service.notification.NotificationService notificationService;
 
   @InjectMocks
   private VaultTrashService vaultTrashService;
