@@ -60,6 +60,32 @@ public class EmailService {
     }
   }
 
+  /**
+   * Sends a simple plain-text email. Used by Feature 39 (Emergency Access) and other features
+   * that need to send ad-hoc notifications.
+   *
+   * @param toEmail  recipient email address
+   * @param subject  email subject
+   * @param body     plain-text body
+   */
+  @Async
+  public void sendSimpleEmail(String toEmail, String subject, String body) {
+    log.info("Sending simple email to: {} subject: {}", toEmail, subject);
+    try {
+      MimeMessage message = javaMailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, true);
+      helper.setFrom(fromEmail);
+      helper.setTo(toEmail);
+      helper.setSubject(subject);
+      helper.setText("<p>" + body.replace("\n", "<br>") + "</p>", true);
+      javaMailSender.send(message);
+      log.info("Simple email sent successfully to: {}", toEmail);
+    } catch (MessagingException e) {
+      log.error("Failed to send simple email to {}: {}", toEmail, e.getMessage());
+      // Non-fatal: caller should handle gracefully
+    }
+  }
+
   @Async
   public void sendOtpEmail(String toEmail, String otpCode) {
     log.info("Sending OTP email to: {}", toEmail);

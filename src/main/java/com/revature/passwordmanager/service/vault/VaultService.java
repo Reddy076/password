@@ -67,6 +67,8 @@ public class VaultService {
   private final DuressService duressService;
   private final JwtTokenProvider jwtTokenProvider;
   private final AuthenticationManager authenticationManager;
+  // Feature 38: Password Expiration Tracker
+  private final com.revature.passwordmanager.service.expiry.PasswordExpiryService passwordExpiryService;
 
   private boolean isDuressMode() {
     Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -132,6 +134,9 @@ public class VaultService {
         "You created a new vault entry: '" + savedEntry.getTitle() + "'.");
 
     securityAuditService.analyzeEntry(savedEntry);
+
+    // Feature 38: initialise expiry tracking for the new entry
+    passwordExpiryService.onPasswordChanged(savedEntry);
 
     return mapToResponse(savedEntry);
   }
@@ -261,6 +266,10 @@ public class VaultService {
 
     if (request.getPassword() != null) {
       securityAuditService.analyzeEntry(savedEntry);
+      // Feature 38: reset expiry clock when password is changed
+      if (!request.getPassword().equals("******")) {
+        passwordExpiryService.onPasswordChanged(savedEntry);
+      }
     }
 
     return mapToResponse(savedEntry);
