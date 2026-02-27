@@ -77,6 +77,8 @@ class VaultServiceTest {
   private com.revature.passwordmanager.repository.CompromisedCredentialRepository compromisedCredentialRepository;
   @Mock
   private com.revature.passwordmanager.repository.SecureShareRepository secureShareRepository;
+  @Mock
+  private com.revature.passwordmanager.service.expiry.PasswordExpiryService passwordExpiryService;
 
   @InjectMocks
   private VaultService vaultService;
