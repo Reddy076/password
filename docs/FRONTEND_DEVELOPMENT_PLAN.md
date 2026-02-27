@@ -1,9 +1,9 @@
 # 🔐 RevaultX — Frontend Development Plan
-## Modern SaaS Password Manager · Angular 18+ · Bootstrap 5 · Pill-Shaped Design System
+## Modern SaaS Password Manager · Angular 18+ · Bootstrap 5 · Pill-Shaped Island Design System
 
-> **Stack:** Angular 18 (Standalone Components + Signals) · TypeScript 5 · Bootstrap 5.3 · SCSS · Angular Animations  
-> **Design Language:** Pill-Shaped UI System — rounded, fluid, modern SaaS aesthetic  
-> **Backend Base URL:** `http://localhost:8080`  
+> **Stack:** Angular 18 (Standalone Components + Signals) · TypeScript 5 · Bootstrap 5.3 · SCSS · Angular Animations
+> **Design Language:** Pill-Shaped **Island** UI System — floating, detached, rounded navigation elements that hover above the background
+> **Backend Base URL:** `http://localhost:8080`
 > **Responsive:** Mobile-first, all breakpoints (320px → 4K)
 
 ---
@@ -67,6 +67,531 @@ Bootstrap 5.3 is used as the grid/utility foundation, fully overridden with the 
 - Custom component variants added via SCSS `@extend`
 - Bootstrap grid (12-col) + CSS Grid hybrid layout
 - Bootstrap breakpoints: `xs(320)`, `sm(576)`, `md(768)`, `lg(992)`, `xl(1200)`, `xxl(1400)`
+
+---
+
+## 🏝️ Island Design System — Floating Navigation Elements
+
+### What is the Island Design?
+
+The **Island Design** is the defining visual concept of RevaultX's navigation. Instead of navigation bars and sidebars that are flush against the screen edges (like traditional apps), every navigation element — the **sidebar**, the **topbar/navbar**, and the **bottom navigation** — is a **floating, detached "island"** that hovers above the background with visible gaps on all sides.
+
+Think of it like:
+- **macOS Dock** — the dock floats above the desktop with space around it
+- **iOS Dynamic Island** — a pill-shaped element that floats at the top, detached from the screen edge
+- **Raycast / Linear / Vercel dashboards** — floating sidebars with rounded corners and visible background gaps
+
+The result is a **premium, airy, modern SaaS feel** where the background (deep navy `#0a0f1e`) is always visible around the navigation islands, creating depth and separation between UI layers.
+
+---
+
+### Island Design Principles
+
+#### 1. Detachment — Never Touch the Edges
+Every navigation island has **margin/padding from the screen edge**. Nothing is flush against the viewport boundary.
+
+```scss
+// Island spacing tokens
+--island-gap:         12px;   // Gap between island and screen edge (mobile)
+--island-gap-md:      16px;   // Gap on tablet
+--island-gap-lg:      20px;   // Gap on desktop
+--island-gap-xl:      24px;   // Gap on large screens
+```
+
+#### 2. Pill Shape — Maximum Roundness
+Islands use the largest practical border-radius to appear as pill/capsule shapes:
+
+```scss
+// Island border-radius
+--island-radius:      24px;   // Sidebar, topbar, bottom nav
+--island-radius-sm:   18px;   // Compact islands (mobile bottom nav)
+--island-radius-lg:   32px;   // Large floating panels
+```
+
+#### 3. Frosted Glass Surface
+Islands use a **semi-transparent frosted glass** background with backdrop blur, so the deep navy background subtly shows through:
+
+```scss
+// Island surface styles
+--island-bg:          rgba(17, 24, 39, 0.85);   // Semi-transparent dark
+--island-blur:        blur(20px);                // Backdrop blur
+--island-border:      1px solid rgba(255, 255, 255, 0.06); // Subtle border
+--island-shadow:      0 8px 32px rgba(0, 0, 0, 0.4),
+                      0 2px 8px rgba(0, 0, 0, 0.2);  // Depth shadow
+--island-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.5),
+                       0 4px 12px rgba(99, 102, 241, 0.15); // Glow on hover
+```
+
+#### 4. Floating Position — `position: fixed` with Inset Margins
+Islands are `position: fixed` with explicit inset values so they always float relative to the viewport:
+
+```scss
+// Sidebar island positioning
+.sidebar-island {
+  position: fixed;
+  top: var(--island-gap-lg);
+  left: var(--island-gap-lg);
+  bottom: var(--island-gap-lg);
+  width: 240px;
+  border-radius: var(--island-radius);
+  // ... glass surface styles
+}
+
+// Topbar island positioning
+.topbar-island {
+  position: fixed;
+  top: var(--island-gap-lg);
+  left: calc(240px + var(--island-gap-lg) * 2);  // After sidebar + gap
+  right: var(--island-gap-lg);
+  height: 60px;
+  border-radius: var(--island-radius);
+  // ... glass surface styles
+}
+
+// Bottom nav island positioning (mobile only)
+.bottom-nav-island {
+  position: fixed;
+  bottom: var(--island-gap);
+  left: var(--island-gap);
+  right: var(--island-gap);
+  height: 64px;
+  border-radius: var(--island-radius);
+  // ... glass surface styles
+}
+```
+
+#### 5. Content Area Offset
+The main content area is offset to account for the floating islands, with matching margins:
+
+```scss
+.main-content {
+  margin-left: calc(240px + var(--island-gap-lg) * 2);  // Sidebar width + gaps
+  margin-top: calc(60px + var(--island-gap-lg) * 2);    // Topbar height + gaps
+  margin-right: var(--island-gap-lg);
+  margin-bottom: var(--island-gap-lg);
+  // Content itself is also a rounded island
+  border-radius: var(--island-radius);
+  background: var(--bg-surface);
+  min-height: calc(100vh - 60px - var(--island-gap-lg) * 3);
+}
+```
+
+---
+
+### Island Visual Layout — Desktop
+
+```
+╔═══════════════════════════════════════════════════════════════════╗
+║  [deep navy background #0a0f1e — always visible in gaps]         ║
+║                                                                   ║
+║  ╭──────────╮  ╭─────────────────────────────────────────────╮   ║
+║  │          │  │  🔍 Search...          🔔 3   👤 John  ⚡  │   ║
+║  │ 🔐       │  ╰─────────────────────────────────────────────╯   ║
+║  │ RevaultX │                                                     ║
+║  │          │  ╭─────────────────────────────────────────────╮   ║
+║  │ ─────── │  │                                             │   ║
+║  │ 🏠 Home  │  │         MAIN CONTENT AREA                  │   ║
+║  │ 🔐 Vault │  │         (router-outlet)                    │   ║
+║  │ 🔑 Gen   │  │                                             │   ║
+║  │ 🛡️ Sec   │  │                                             │   ║
+║  │ ⚙️ Set   │  │                                             │   ║
+║  │          │  │                                             │   ║
+║  │ ─────── │  │                                             │   ║
+║  │ 👤 John  │  ╰─────────────────────────────────────────────╯   ║
+║  │ [Logout] │                                                     ║
+║  ╰──────────╯                                                     ║
+╚═══════════════════════════════════════════════════════════════════╝
+```
+
+**Key observations:**
+- The deep navy background is **always visible** in the gaps between islands
+- The sidebar island has **equal gaps** on top, left, and bottom from the viewport
+- The topbar island has a **gap from the top** and aligns with the sidebar's top edge
+- The content area is **also a rounded island** — it's not a raw page, it's a floating panel
+- All four corners of every island are **fully rounded** (24px radius)
+
+---
+
+### Island Visual Layout — Tablet (768px–991px)
+
+On tablet, the sidebar collapses to an **icon-only island** (60px wide):
+
+```
+╔══════════════════════════════════════════════════════╗
+║  [deep navy background]                              ║
+║                                                      ║
+║  ╭────╮  ╭──────────────────────────────────────╮   ║
+║  │    │  │  🔍 Search...          🔔  👤        │   ║
+║  │ 🏠 │  ╰──────────────────────────────────────╯   ║
+║  │ 🔐 │                                             ║
+║  │ 🔑 │  ╭──────────────────────────────────────╮   ║
+║  │ 🛡️ │  │                                      │   ║
+║  │ ⚙️ │  │    MAIN CONTENT                      │   ║
+║  │    │  │                                      │   ║
+║  │ 👤 │  ╰──────────────────────────────────────╯   ║
+║  ╰────╯                                             ║
+╚══════════════════════════════════════════════════════╝
+```
+
+- Sidebar island shrinks to 60px, showing only icons
+- Hovering an icon shows a **tooltip pill** floating to the right
+- Smooth width transition animation (240px → 60px)
+
+---
+
+### Island Visual Layout — Mobile (<768px)
+
+On mobile, the sidebar disappears entirely and a **bottom navigation island** appears:
+
+```
+╔═══════════════════════════════╗
+║  [deep navy background]       ║
+║                               ║
+║  ╭─────────────────────────╮  ║
+║  │  🔍 Search...    🔔  👤 │  ║
+║  ╰─────────────────────────╯  ║
+║                               ║
+║  ╭─────────────────────────╮  ║
+║  │                         │  ║
+║  │   MAIN CONTENT          │  ║
+║  │   (full width)          │  ║
+║  │                         │  ║
+║  │                         │  ║
+║  ╰─────────────────────────╯  ║
+║                               ║
+║  ╭─────────────────────────╮  ║
+║  │  🏠   🔐   🔑   🛡️   ⚙️ │  ║
+║  ╰─────────────────────────╯  ║
+╚═══════════════════════════════╝
+```
+
+- **Bottom navigation island** floats above the bottom edge with `--island-gap` margin
+- The island has a **pill shape** with equal rounded corners
+- Active item has a **pill-shaped highlight** that slides between items
+- The topbar island is **compact** on mobile (no breadcrumbs, smaller search)
+- Content area takes **full width** minus the island gaps
+
+---
+
+### Island Interaction States
+
+#### Hover State
+When hovering over an island (or hovering the sidebar), the island subtly **brightens and lifts**:
+
+```scss
+.sidebar-island:hover,
+.topbar-island:hover {
+  background: rgba(26, 34, 53, 0.90);  // Slightly more opaque
+  box-shadow: var(--island-shadow-hover);  // Enhanced glow shadow
+  transform: translateY(-1px);  // Subtle lift
+  transition: all var(--transition-base);
+}
+```
+
+#### Active/Focus State
+When an island contains an active route or focused element, it gets a **subtle accent glow border**:
+
+```scss
+.sidebar-island.has-active-route {
+  border-color: rgba(99, 102, 241, 0.2);  // Indigo glow border
+  box-shadow: var(--island-shadow),
+              0 0 0 1px rgba(99, 102, 241, 0.1);  // Inner glow ring
+}
+```
+
+#### Scroll Behavior
+- **Topbar island:** Stays fixed at top — does NOT scroll with content
+- **Sidebar island:** Stays fixed on left — does NOT scroll with content
+- **Content island:** Scrolls internally (overflow-y: auto with custom scrollbar)
+- **Bottom nav island:** Stays fixed at bottom — does NOT scroll
+
+#### Collapse Animation (Sidebar)
+```scss
+// Sidebar collapse: 240px → 60px
+.sidebar-island {
+  width: 240px;
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+
+  &.collapsed {
+    width: 60px;
+
+    .nav-label { opacity: 0; width: 0; }
+    .nav-icon  { margin: 0 auto; }
+  }
+}
+```
+
+---
+
+### Island SCSS Implementation
+
+#### `_island-system.scss` (new file)
+
+```scss
+// ============================================================
+// ISLAND DESIGN SYSTEM
+// Floating, detached, pill-shaped navigation elements
+// ============================================================
+
+// Island base mixin — apply to any floating navigation element
+@mixin island-base($radius: var(--island-radius)) {
+  position: fixed;
+  border-radius: $radius;
+  background: var(--island-bg);
+  backdrop-filter: var(--island-blur);
+  -webkit-backdrop-filter: var(--island-blur);
+  border: var(--island-border);
+  box-shadow: var(--island-shadow);
+  transition:
+    box-shadow var(--transition-base),
+    background var(--transition-base),
+    transform var(--transition-base);
+  z-index: 100;
+
+  &:hover {
+    box-shadow: var(--island-shadow-hover);
+  }
+}
+
+// Sidebar island
+.sidebar-island {
+  @include island-base;
+  top: var(--island-gap-lg);
+  left: var(--island-gap-lg);
+  bottom: var(--island-gap-lg);
+  width: 240px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @media (max-width: 991px) {
+    width: 60px;
+  }
+
+  @media (max-width: 767px) {
+    display: none;  // Hidden on mobile
+  }
+}
+
+// Topbar island
+.topbar-island {
+  @include island-base;
+  top: var(--island-gap-lg);
+  left: calc(240px + var(--island-gap-lg) * 2);
+  right: var(--island-gap-lg);
+  height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 12px;
+
+  @media (max-width: 991px) {
+    left: calc(60px + var(--island-gap-lg) * 2);
+  }
+
+  @media (max-width: 767px) {
+    left: var(--island-gap);
+    right: var(--island-gap);
+    top: var(--island-gap);
+    height: 52px;
+  }
+}
+
+// Main content island
+.content-island {
+  position: fixed;
+  top: calc(60px + var(--island-gap-lg) * 2);
+  left: calc(240px + var(--island-gap-lg) * 2);
+  right: var(--island-gap-lg);
+  bottom: var(--island-gap-lg);
+  border-radius: var(--island-radius);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  // Custom scrollbar inside content island
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 3px;
+  }
+
+  @media (max-width: 991px) {
+    left: calc(60px + var(--island-gap-lg) * 2);
+  }
+
+  @media (max-width: 767px) {
+    top: calc(52px + var(--island-gap) * 2);
+    left: var(--island-gap);
+    right: var(--island-gap);
+    bottom: calc(64px + var(--island-gap) * 2);  // Space for bottom nav
+  }
+}
+
+// Bottom navigation island (mobile only)
+.bottom-nav-island {
+  @include island-base;
+  bottom: var(--island-gap);
+  left: var(--island-gap);
+  right: var(--island-gap);
+  height: 64px;
+  display: none;  // Hidden on desktop/tablet
+  align-items: center;
+  justify-content: space-around;
+  padding: 0 8px;
+
+  @media (max-width: 767px) {
+    display: flex;
+  }
+}
+
+// Active nav item pill indicator inside sidebar
+.nav-item-pill {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 14px;  // Inner pill for nav items
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--text-secondary);
+
+  &:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  &.active {
+    background: rgba(99, 102, 241, 0.15);  // Indigo tint
+    color: var(--accent-primary);
+    font-weight: 600;
+
+    // Glowing left accent bar
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 3px;
+      height: 60%;
+      background: var(--accent-primary);
+      border-radius: 0 2px 2px 0;
+      box-shadow: 0 0 8px var(--glow-primary);
+    }
+  }
+}
+
+// Bottom nav active pill indicator
+.bottom-nav-pill {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--text-secondary);
+  font-size: 10px;
+
+  &.active {
+    background: rgba(99, 102, 241, 0.15);
+    color: var(--accent-primary);
+  }
+
+  // Sliding active indicator (animated via Angular)
+  .active-indicator {
+    position: absolute;
+    bottom: -4px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent-primary);
+    box-shadow: 0 0 6px var(--glow-primary);
+  }
+}
+```
+
+---
+
+### Island Entrance Animations
+
+When the app first loads, the islands **animate in** from their respective edges:
+
+```scss
+// Sidebar island: slides in from left
+@keyframes islandEnterLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+// Topbar island: slides down from top
+@keyframes islandEnterTop {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// Bottom nav island: slides up from bottom
+@keyframes islandEnterBottom {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// Content island: fades and scales in
+@keyframes islandEnterContent {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+// Apply animations on app init
+.sidebar-island    { animation: islandEnterLeft    400ms var(--spring) both; }
+.topbar-island     { animation: islandEnterTop     400ms var(--spring) 100ms both; }
+.content-island    { animation: islandEnterContent 400ms var(--spring) 200ms both; }
+.bottom-nav-island { animation: islandEnterBottom  400ms var(--spring) 100ms both; }
+```
+
+---
+
+### Island Responsive Summary Table
+
+| Element | Desktop (≥992px) | Tablet (768–991px) | Mobile (<768px) |
+|---|---|---|---|
+| **Sidebar Island** | Fixed left, 240px wide, full height minus gaps | Fixed left, 60px wide (icon-only) | Hidden |
+| **Topbar Island** | Fixed top, spans from sidebar to right edge | Fixed top, spans from icon sidebar to right | Fixed top, full width minus gaps |
+| **Content Island** | Fills remaining space (right of sidebar, below topbar) | Fills remaining space | Full width, between topbar and bottom nav |
+| **Bottom Nav Island** | Hidden | Hidden | Fixed bottom, full width minus gaps, 64px tall |
+| **Gap from edges** | 20px all sides | 16px all sides | 12px all sides |
+| **Border radius** | 24px | 24px | 18px |
 
 ---
 
@@ -156,10 +681,11 @@ password-manager-frontend/
 │   │   ├── icons/                         # SVG icon set
 │   │   └── images/
 │   └── styles/
-│       ├── _variables.scss                # Design tokens
-│       ├── _pill-system.scss              # Pill component base
-│       ├── _animations.scss               # All keyframes
-│       ├── _bootstrap-override.scss       # Bootstrap customization
+│       ├── _variables.scss                # Design tokens (colors, spacing, radius)
+│       ├── _pill-system.scss              # Pill component base classes
+│       ├── _island-system.scss            # 🏝️ Island navigation (sidebar/topbar/bottom-nav floating)
+│       ├── _animations.scss               # All keyframes (incl. island entrance animations)
+│       ├── _bootstrap-override.scss       # Bootstrap customization (pill radius overrides)
 │       ├── _typography.scss
 │       ├── _utilities.scss
 │       └── styles.scss                    # Global entry
@@ -614,112 +1140,435 @@ verifyOtp(username, code): Observable<AuthResponse>
 
 ---
 
-# 🗄️ PHASE 3 — Main Layout & Navigation
-**Duration:** ~3 days  
-**Goal:** App shell, sidebar, topbar, responsive navigation
+# 🗄️ PHASE 3 — Main Layout & Navigation (Island Design)
+**Duration:** ~3 days
+**Goal:** App shell with floating island sidebar, island topbar, island bottom nav, responsive navigation
+
+> **Key Principle:** All navigation elements are **floating islands** — detached from screen edges, pill-shaped, with frosted glass surfaces. See the [Island Design System](#️-island-design-system--floating-navigation-elements) section above for full SCSS implementation details.
 
 ---
 
 ## 3.1 Main Layout Shell
 
 ### `MainLayoutComponent`
-Three-column responsive layout:
+The main layout is a **layered island composition** — all navigation elements float above the deep navy background. Nothing touches the screen edges. The background (`#0a0f1e`) is always visible in the gaps between islands, creating depth and a premium floating feel.
+
+**Desktop Layout (≥992px):**
 ```
-┌─────────────────────────────────────────────────────────┐
-│  TOPBAR (full width, pill-shaped elements)              │
-├──────────┬──────────────────────────────────────────────┤
-│          │                                              │
-│ SIDEBAR  │         MAIN CONTENT AREA                   │
-│ (240px)  │         (router-outlet)                     │
-│          │                                              │
-│          │                                              │
-└──────────┴──────────────────────────────────────────────┘
+╔═══════════════════════════════════════════════════════════════════╗
+║  [#0a0f1e deep navy background — always visible in all gaps]     ║
+║                                                                   ║
+║  ╭──────────╮  ╭─────────────────────────────────────────────╮   ║
+║  │ SIDEBAR  │  │              TOPBAR ISLAND                  │   ║
+║  │ ISLAND   │  │  [≡] [🔍 Search...]  [🔔3] [👤 JD] [⚡]   │   ║
+║  │ 240px    │  ╰─────────────────────────────────────────────╯   ║
+║  │ fixed    │                                                     ║
+║  │ left     │  ╭─────────────────────────────────────────────╮   ║
+║  │          │  │                                             │   ║
+║  │ 🏠 Home  │  │         CONTENT ISLAND                     │   ║
+║  │ 🔐 Vault │  │         (router-outlet, scrollable)        │   ║
+║  │ 🔑 Gen   │  │                                             │   ║
+║  │ 🛡️ Sec   │  │                                             │   ║
+║  │ ⚙️ Set   │  │                                             │   ║
+║  │          │  │                                             │   ║
+║  │ [avatar] │  ╰─────────────────────────────────────────────╯   ║
+║  ╰──────────╯                                                     ║
+╚═══════════════════════════════════════════════════════════════════╝
+```
+
+**Tablet Layout (768–991px):**
+```
+╔══════════════════════════════════════════════════════╗
+║  [deep navy background]                              ║
+║                                                      ║
+║  ╭────╮  ╭──────────────────────────────────────╮   ║
+║  │SIDE│  │  [🔍 Search...]  [🔔] [👤]           │   ║
+║  │ 60 │  ╰──────────────────────────────────────╯   ║
+║  │ px │                                             ║
+║  │icon│  ╭──────────────────────────────────────╮   ║
+║  │only│  │                                      │   ║
+║  │    │  │    CONTENT ISLAND                    │   ║
+║  │    │  │                                      │   ║
+║  ╰────╯  ╰──────────────────────────────────────╯   ║
+╚══════════════════════════════════════════════════════╝
+```
+
+**Mobile Layout (<768px):**
+```
+╔═══════════════════════════════╗
+║  [deep navy background]       ║
+║                               ║
+║  ╭─────────────────────────╮  ║
+║  │  [🔍 Search...]  [🔔][👤]│  ║  ← Topbar island (floating)
+║  ╰─────────────────────────╯  ║
+║                               ║  ← Gap (background visible)
+║  ╭─────────────────────────╮  ║
+║  │                         │  ║
+║  │   CONTENT ISLAND        │  ║
+║  │   (full width)          │  ║
+║  │                         │  ║
+║  ╰─────────────────────────╯  ║
+║                               ║  ← Gap (background visible)
+║  ╭─────────────────────────╮  ║
+║  │  🏠   🔐   🔑   🛡️   ⚙️ │  ║  ← Bottom nav island (floating)
+║  ╰─────────────────────────╯  ║
+╚═══════════════════════════════╝
+```
+
+**Angular Template Structure:**
+```html
+<!-- MainLayoutComponent template -->
+<div class="app-shell">
+  <!-- Deep navy background always visible in gaps -->
+  <div class="bg-layer"></div>
+
+  <!-- Sidebar Island (desktop/tablet only) -->
+  <nav class="sidebar-island" [class.collapsed]="sidebarCollapsed">
+    <app-sidebar></app-sidebar>
+  </nav>
+
+  <!-- Topbar Island (all breakpoints) -->
+  <header class="topbar-island">
+    <app-topbar (toggleSidebar)="sidebarCollapsed = !sidebarCollapsed"></app-topbar>
+  </header>
+
+  <!-- Content Island (all breakpoints) -->
+  <main class="content-island" [@contentAnimation]>
+    <router-outlet></router-outlet>
+  </main>
+
+  <!-- Bottom Nav Island (mobile only, shown via CSS) -->
+  <nav class="bottom-nav-island">
+    <app-bottom-nav></app-bottom-nav>
+  </nav>
+</div>
 ```
 
 **Responsive Behavior:**
-- Desktop (≥992px): Sidebar always visible, 240px wide
-- Tablet (768-991px): Sidebar collapsible, icon-only mode (60px)
-- Mobile (<768px): Sidebar hidden, bottom navigation bar shown
+- Desktop (≥992px): Sidebar island 240px wide, topbar island spans right of sidebar, content island fills remaining space
+- Tablet (768–991px): Sidebar island collapses to 60px icon-only, topbar and content adjust left offset
+- Mobile (<768px): Sidebar island hidden, topbar island full width, content island full width, bottom nav island appears
 
 ---
 
-## 3.2 Sidebar Navigation
+## 3.2 Sidebar Island
 
 ### `SidebarComponent`
-**Visual Design:** Dark pill-shaped sidebar with glowing active states
+**CSS Class:** `.sidebar-island`
+**Position:** `position: fixed`, left side, full height minus `--island-gap-lg` (20px) on all sides
+**Visual:** Frosted glass pill-shaped panel — `border-radius: 24px`, `backdrop-filter: blur(20px)`, semi-transparent dark background
 
-**Navigation Items:**
+**The sidebar is a floating island — it does NOT touch the left edge, top edge, or bottom edge of the screen. There is always a 20px gap of deep navy background visible around it.**
+
+**Internal Structure:**
 ```
-🏠 Dashboard
-🔐 Vault
-  ├── All Passwords
-  ├── Favorites ⭐
-  ├── Recently Used
-  └── Trash 🗑️ [count badge]
-📁 Folders (expandable tree)
-🏷️ Categories (expandable list)
-🔑 Generator
-🛡️ Security
-  ├── Audit Logs
-  ├── Alerts [unread badge]
-  ├── Login History
-  └── Breach Monitor
-📊 Dashboard
-🤖 AI Assistant
-👥 Teams
-📎 Files
-🔗 Sharing
-⚙️ Settings
+╭──────────────────────────╮
+│  🔐 RevaultX    [≡]      │  ← Logo + collapse toggle (pill button)
+│  ─────────────────────── │  ← Subtle divider
+│  ╭──────────────────────╮│
+│  │ 🏠 Dashboard         ││  ← Active: indigo tint bg + left glow bar
+│  ╰──────────────────────╯│
+│  ╭──────────────────────╮│
+│  │ 🔐 Vault          ▾  ││  ← Expandable group (pill toggle)
+│  │   All Passwords      ││
+│  │   ⭐ Favorites        ││
+│  │   🕐 Recently Used   ││
+│  │   🗑️ Trash  [3]      ││  ← Pill badge count
+│  ╰──────────────────────╯│
+│  📁 Folders           ▾  │
+│  🏷️ Categories        ▾  │
+│  🔑 Generator            │
+│  🛡️ Security          ▾  │
+│  │   Audit Logs          │
+│  │   Alerts  [🔴 2]      │  ← Unread alert badge
+│  │   Login History       │
+│  │   Breach Monitor      │
+│  📊 Dashboard            │
+│  🤖 AI Assistant         │
+│  👥 Teams                │
+│  📎 Files                │
+│  🔗 Sharing              │
+│  ⚙️ Settings             │
+│  ─────────────────────── │
+│  ╭──────────────────────╮│
+│  │ 👤 John Doe          ││  ← User section (pill card at bottom)
+│  │ john@example.com     ││
+│  │ [Logout]             ││
+│  ╰──────────────────────╯│
+╰──────────────────────────╯
 ```
 
-**Features:**
-- Active route highlighted with pill-shaped indicator + glow
-- Folder tree with expand/collapse animation
-- Unread notification badge on Security > Alerts
-- Trash count badge
-- Collapse to icon-only mode (smooth width transition)
-- User avatar + name at bottom with logout button
+**Navigation Item Design (`.nav-item-pill`):**
+Each nav item is a **mini pill** inside the sidebar island:
+- `border-radius: 14px` — inner pill shape
+- Inactive: transparent background, `var(--text-secondary)` color
+- Hover: `var(--bg-hover)` background, `var(--text-primary)` color
+- Active: `rgba(99, 102, 241, 0.15)` indigo tint + left accent bar with glow:
+  ```scss
+  &.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    background: var(--accent-primary);
+    border-radius: 0 2px 2px 0;
+    box-shadow: 0 0 8px var(--glow-primary);
+  }
+  ```
+
+**Collapsed State (Tablet — 60px icon-only):**
+- Labels hidden: `opacity: 0; width: 0; overflow: hidden`
+- Icons centered: `margin: 0 auto`
+- Hovering an icon shows a **floating tooltip pill** to the right of the sidebar island:
+  ```scss
+  .nav-tooltip {
+    position: absolute;
+    left: calc(100% + 12px);  // Floats outside the sidebar island
+    background: var(--bg-elevated);
+    border: var(--island-border);
+    border-radius: 10px;
+    padding: 6px 12px;
+    white-space: nowrap;
+    box-shadow: var(--island-shadow);
+    animation: fadeScale 150ms ease both;
+    z-index: 200;
+  }
+  ```
+
+**Sidebar island entrance animation:**
+```scss
+.sidebar-island {
+  animation: islandEnterLeft 400ms var(--spring) both;
+}
+```
 
 ---
 
-## 3.3 Topbar
+## 3.3 Topbar Island
 
 ### `TopbarComponent`
+**CSS Class:** `.topbar-island`
+**Position:** `position: fixed`, top, spanning from sidebar's right edge + gap to viewport right minus gap
+**Visual:** Frosted glass pill-shaped bar — `border-radius: 24px`, 60px tall, `backdrop-filter: blur(20px)`
+
+**The topbar is a floating island — it does NOT touch the top edge, left edge, or right edge of the screen. There is always a 20px gap of deep navy background visible above and around it.**
+
+**Internal Layout:**
 ```
-┌─────────────────────────────────────────────────────────┐
-│ [≡] RevaultX    [🔍 Search vault...]    [🔔3] [👤 John] │
-└─────────────────────────────────────────────────────────┘
+╭──────────────────────────────────────────────────────────────────╮
+│  [≡]  [🔍 Search vault...                    ]  [🔔 3]  [👤 JD] │
+╰──────────────────────────────────────────────────────────────────╯
 ```
 
-**Features:**
-- Global search bar (pill-shaped, expands on focus)
-  - Debounced search → `GET /api/vault/search`
-  - Dropdown results with keyboard navigation
-- Notification bell with unread count badge
-  - Dropdown panel showing recent notifications
-  - Mark all read button
-- User avatar dropdown:
-  - Profile link
-  - Settings link
-  - Read-only mode toggle
-  - Logout button
-- System health dot (green/yellow/red) polling `/api/health`
-- Breadcrumb trail for current route
+**Elements inside the topbar island:**
+
+1. **Sidebar Toggle Button** (leftmost, pill icon button)
+   - Toggles sidebar between 240px ↔ 60px (desktop/tablet)
+   - Hidden on mobile (no sidebar on mobile)
+
+2. **Global Search Bar** (center, pill-shaped, expands on focus)
+   - `border-radius: 9999px` — perfect pill shape
+   - Placeholder: "Search vault..."
+   - On focus: width expands with smooth transition, subtle glow border
+   - Dropdown results: a **floating island panel** below the topbar island
+   - Debounced 300ms → `GET /api/vault/search`
+   - Keyboard navigation (↑↓, Enter, Esc)
+
+3. **Notification Bell** (right side, pill icon button)
+   - Unread count badge: small pill badge (red/indigo)
+   - Click → **floating notification island panel** drops below topbar
+   - Panel: pill-shaped, frosted glass, shows recent notifications
+
+4. **User Avatar** (rightmost, circular pill)
+   - Initials with gradient background
+   - Click → **floating user menu island** drops below topbar
+   - Menu: pill-shaped panel with Profile, Settings, Read-Only toggle, Logout
+
+5. **System Health Dot** (far right, 8px dot)
+   - Green (UP), Yellow (DEGRADED), Red (DOWN)
+   - Polls `GET /api/health` every 5 minutes
+   - Tooltip on hover
+
+**Topbar island entrance animation:**
+```scss
+.topbar-island {
+  animation: islandEnterTop 400ms var(--spring) 100ms both;
+}
+```
 
 ---
 
-## 3.4 Bottom Navigation (Mobile)
+## 3.4 Bottom Navigation Island (Mobile)
 
 ### `BottomNavComponent`
-Shown only on mobile (<768px):
+**CSS Class:** `.bottom-nav-island`
+**Position:** `position: fixed`, bottom, full width minus `--island-gap` (12px) on left/right/bottom
+**Visual:** Frosted glass pill-shaped bar — `border-radius: 18px`, 64px tall
+**Visibility:** Only shown on mobile (<768px) via `display: none` → `display: flex`
+
+**The bottom nav is a floating island — it does NOT touch the bottom edge, left edge, or right edge of the screen. There is always a 12px gap of deep navy background visible below and around it.**
+
+**Internal Layout:**
 ```
-┌─────────────────────────────────────────────────────────┐
-│  🏠        🔐        🔑        🛡️        ⚙️            │
-│ Home     Vault   Generator  Security  Settings          │
-└─────────────────────────────────────────────────────────┘
+╭──────────────────────────────────────────────────────╮
+│                                                      │
+│   🏠      🔐      🔑      🛡️      ⚙️               │
+│  Home   Vault   Gen    Security  Settings            │
+│                                                      │
+╰──────────────────────────────────────────────────────╯
 ```
-- Pill-shaped active indicator slides between items
-- Haptic feedback on mobile (if supported)
+
+**Active State — Sliding Pill Indicator:**
+The active item has a **pill-shaped highlight background** that **slides** between items using Angular animations:
+
+```typescript
+// Angular animation for sliding active background pill
+export const bottomNavAnimation = trigger('slideIndicator', [
+  state('home',     style({ transform: 'translateX(0%)' })),
+  state('vault',    style({ transform: 'translateX(100%)' })),
+  state('gen',      style({ transform: 'translateX(200%)' })),
+  state('security', style({ transform: 'translateX(300%)' })),
+  state('settings', style({ transform: 'translateX(400%)' })),
+  transition('* <=> *', animate('250ms cubic-bezier(0.4, 0, 0.2, 1)')),
+]);
+```
+
+```scss
+.bottom-nav-island {
+  position: relative;
+
+  // Sliding active background pill (absolutely positioned)
+  .active-bg-pill {
+    position: absolute;
+    width: 20%;       // 1/5 of nav width
+    height: calc(100% - 12px);
+    top: 6px;
+    border-radius: 14px;
+    background: rgba(99, 102, 241, 0.15);  // Indigo tint
+    transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    z-index: 0;
+  }
+}
+```
+
+**Each nav item (`.bottom-nav-pill`):**
+- Icon (24px) + label (10px text) stacked vertically
+- Active: indigo tint background (via sliding pill), indigo icon/text color
+- Inactive: muted icon/text color
+- Tap: scale down 0.95 → spring back (tactile feedback)
+
+**Bottom nav island entrance animation:**
+```scss
+.bottom-nav-island {
+  animation: islandEnterBottom 400ms var(--spring) 100ms both;
+}
+```
+
+---
+
+## 3.5 Content Island
+
+### Content Area
+**CSS Class:** `.content-island`
+**Position:** `position: fixed`, fills the space between sidebar (left), topbar (top), and viewport edges (right/bottom) — all with `--island-gap-lg` margins
+**Visual:** Rounded panel — `border-radius: 24px`, `background: var(--bg-surface)`, subtle border
+
+**The content area is also an island — it does NOT touch any screen edge. It floats in the remaining space after the sidebar and topbar islands, with consistent gaps on all sides.**
+
+```scss
+.content-island {
+  position: fixed;
+  top: calc(60px + var(--island-gap-lg) * 2);      // Below topbar island + gap
+  left: calc(240px + var(--island-gap-lg) * 2);    // Right of sidebar island + gap
+  right: var(--island-gap-lg);
+  bottom: var(--island-gap-lg);
+  border-radius: var(--island-radius);             // 24px
+  background: var(--bg-surface);                   // #111827
+  border: 1px solid var(--border-subtle);
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  // Custom thin scrollbar
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+
+  // Mobile: full width, between topbar and bottom nav
+  @media (max-width: 767px) {
+    left: var(--island-gap);
+    right: var(--island-gap);
+    top: calc(52px + var(--island-gap) * 2);
+    bottom: calc(64px + var(--island-gap) * 2);
+  }
+}
+```
+
+**Page transition inside content island:**
+```typescript
+export const contentAnimation = trigger('contentAnimation', [
+  transition(':enter', [
+    style({ opacity: 0, transform: 'translateY(12px)' }),
+    animate('300ms cubic-bezier(0.4, 0, 0.2, 1)',
+      style({ opacity: 1, transform: 'translateY(0)' }))
+  ]),
+]);
+```
+
+---
+
+## 3.6 Island Spacing Reference
+
+All islands maintain consistent gaps from the viewport edges and from each other:
+
+```
+Desktop (≥992px) — 20px gaps everywhere:
+┌─────────────────────────────────────────────────────────────────┐
+│ 20px gap                                                        │
+│    ╭──────────╮ 20px ╭──────────────────────────────────────╮  │
+│    │          │      │ TOPBAR ISLAND (60px tall)            │  │
+│    │ SIDEBAR  │      ╰──────────────────────────────────────╯  │
+│    │ ISLAND   │ 20px gap                                       │
+│    │ (240px)  │      ╭──────────────────────────────────────╮  │
+│    │          │      │                                      │  │
+│    │          │      │ CONTENT ISLAND                       │  │
+│    │          │      │                                      │  │
+│    ╰──────────╯      ╰──────────────────────────────────────╯  │
+│ 20px gap                                                   20px │
+└─────────────────────────────────────────────────────────────────┘
+
+Mobile (<768px) — 12px gaps everywhere:
+┌─────────────────────────────────────┐
+│ 12px gap                            │
+│    ╭───────────────────────────╮    │
+│    │ TOPBAR ISLAND (52px tall) │    │
+│    ╰───────────────────────────╯    │
+│ 12px gap                            │
+│    ╭───────────────────────────╮    │
+│    │                           │    │
+│    │ CONTENT ISLAND            │    │
+│    │                           │    │
+│    ╰───────────────────────────╯    │
+│ 12px gap                            │
+│    ╭───────────────────────────╮    │
+│    │ BOTTOM NAV ISLAND (64px)  │    │
+│    ╰───────────────────────────╯    │
+│ 12px gap                            │
+└─────────────────────────────────────┘
+```
+
+**Island Responsive Summary:**
+
+| Element | Desktop (≥992px) | Tablet (768–991px) | Mobile (<768px) |
+|---|---|---|---|
+| **Sidebar Island** | Fixed left, 240px, full height minus 20px gaps | Fixed left, 60px icon-only | Hidden |
+| **Topbar Island** | Fixed top, right of sidebar, 60px tall | Fixed top, right of icon sidebar | Fixed top, full width minus 12px gaps, 52px tall |
+| **Content Island** | Fills remaining space, 24px radius | Fills remaining space | Full width minus 12px gaps, between topbar and bottom nav |
+| **Bottom Nav Island** | Hidden | Hidden | Fixed bottom, full width minus 12px gaps, 64px tall, 18px radius |
+| **Gap from edges** | 20px all sides | 16px all sides | 12px all sides |
+| **Border radius** | 24px | 24px | 18px (bottom nav), 24px (others) |
 
 ---
 
