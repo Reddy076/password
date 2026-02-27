@@ -43,8 +43,9 @@ public class TimelineSummaryResponse {
 
     /**
      * Most active hour of the day (0-23) by audit log count.
+     * Null when there are no audit log events yet (new user).
      */
-    private int mostActiveHour;
+    private Integer mostActiveHour;
 
     /** Top 5 most frequently accessed vault entries (by audit log count) */
     private List<EntryActivitySummary> mostAccessedEntries;

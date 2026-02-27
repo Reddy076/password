@@ -70,6 +70,9 @@ public class TimelineStatsResponse {
         private int securityCount;
         private int sharingCount;
         private int authCount;
+        /** Fix: previously BACKUP events (VAULT_EXPORTED) were silently dropped; now tracked */
+        private int backupCount;
+        private int breachCount;
     }
 
     @Data

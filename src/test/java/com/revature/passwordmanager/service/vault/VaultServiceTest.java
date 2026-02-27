@@ -71,6 +71,12 @@ class VaultServiceTest {
   private com.revature.passwordmanager.security.JwtTokenProvider jwtTokenProvider;
   @Mock
   private org.springframework.security.authentication.AuthenticationManager authenticationManager;
+  @Mock
+  private com.revature.passwordmanager.service.notification.NotificationService notificationService;
+  @Mock
+  private com.revature.passwordmanager.repository.CompromisedCredentialRepository compromisedCredentialRepository;
+  @Mock
+  private com.revature.passwordmanager.repository.SecureShareRepository secureShareRepository;
 
   @InjectMocks
   private VaultService vaultService;

@@ -1,6 +1,8 @@
 package com.revature.passwordmanager.service.analytics;
 
 import com.revature.passwordmanager.dto.response.*;
+import com.revature.passwordmanager.exception.ResourceNotFoundException;
+import com.revature.passwordmanager.model.analytics.TimelinePeriod;
 import com.revature.passwordmanager.model.security.AuditLog;
 import com.revature.passwordmanager.model.security.AuditLog.AuditAction;
 import com.revature.passwordmanager.model.user.User;
@@ -44,6 +46,10 @@ public class VaultTimelineService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
 
+    /** Valid category filter values accepted by the timeline endpoint. */
+    private static final Set<String> VALID_CATEGORIES =
+            Set.of("VAULT", "AUTH", "BREACH", "SHARING", "BACKUP", "SECURITY");
+
     // ── Public API ────────────────────────────────────────────────────────────
 
     /**
@@ -57,8 +63,14 @@ public class VaultTimelineService {
      */
     @Transactional(readOnly = true)
     public VaultTimelineResponse getTimeline(String username, Integer days, String categoryFilter) {
-        User user = userRepository.findByUsernameOrThrow(username);
+        // Fix: validate category filter — return 400 for unknown values instead of silently empty list
+        if (categoryFilter != null && !categoryFilter.isBlank()
+                && !VALID_CATEGORIES.contains(categoryFilter.toUpperCase())) {
+            throw new IllegalArgumentException(
+                    "Invalid category filter '" + categoryFilter + "'. Valid values: " + VALID_CATEGORIES);
+        }
 
+        User user = userRepository.findByUsernameOrThrow(username);
         List<AuditLog> logs = fetchLogs(user.getId(), days);
 
         // Audit log the timeline access (after fetching so it doesn't include itself)
@@ -66,25 +78,27 @@ public class VaultTimelineService {
 
         List<TimelineEventDTO> events = activityAggregator.aggregate(logs, user.getId());
 
-        // Apply category filter if provided
+        // Apply category filter if provided (now guaranteed to be a valid value)
         if (categoryFilter != null && !categoryFilter.isBlank()) {
+            final String upperCategory = categoryFilter.toUpperCase();
             events = events.stream()
-                    .filter(e -> categoryFilter.equalsIgnoreCase(e.getCategory()))
+                    .filter(e -> upperCategory.equalsIgnoreCase(e.getCategory()))
                     .collect(Collectors.toList());
         }
 
         VaultTimelineResponse.CategoryBreakdown breakdown = computeCategoryBreakdown(events);
 
-        String startDate = deriveStartDate(logs);
-        String endDate = LocalDateTime.now().format(DATE_FORMATTER);
-        String period = days == null || days <= 0 ? "ALL_TIME" : "LAST_" + days + "_DAYS";
+        // Use TimelinePeriod to compute accurate period label, start, and end dates
+        LocalDateTime earliest = logs.isEmpty() ? null
+                : logs.get(logs.size() - 1).getTimestamp();
+        TimelinePeriod period = TimelinePeriod.resolve(days, earliest);
 
         return VaultTimelineResponse.builder()
                 .events(events)
                 .totalEvents(events.size())
-                .period(period)
-                .startDate(startDate)
-                .endDate(endDate)
+                .period(period.getLabel())
+                .startDate(period.getStart().format(DATE_FORMATTER))
+                .endDate(period.getEnd().format(DATE_FORMATTER))
                 .categoryBreakdown(breakdown)
                 .build();
     }
@@ -99,6 +113,7 @@ public class VaultTimelineService {
     public TimelineSummaryResponse getSummary(String username) {
         User user = userRepository.findByUsernameOrThrow(username);
         Long userId = user.getId();
+        auditLogService.logAction(username, AuditAction.TIMELINE_VIEWED, "Viewed timeline summary");
 
         List<AuditLog> allLogs = auditLogRepository.findByUserIdOrderByTimestampDesc(userId);
         List<VaultSnapshot> snapshots = vaultSnapshotRepository.findByVaultEntryUserIdOrderByChangedAtDesc(userId);
@@ -111,7 +126,7 @@ public class VaultTimelineService {
         int totalAuditEvents = allLogs.size();
 
         String mostActiveDayOfWeek = computeMostActiveDayOfWeek(allLogs);
-        int mostActiveHour = computeMostActiveHour(allLogs);
+        Integer mostActiveHour = computeMostActiveHour(allLogs);
 
         List<TimelineSummaryResponse.EntryActivitySummary> mostAccessed =
                 computeMostAccessedEntries(allLogs, userId);
@@ -145,19 +160,20 @@ public class VaultTimelineService {
     public EntryTimelineResponse getEntryTimeline(String username, Long entryId) {
         User user = userRepository.findByUsernameOrThrow(username);
 
+        auditLogService.logAction(username, AuditAction.TIMELINE_VIEWED,
+                "Viewed timeline for entry id=" + entryId);
+
         // Security: verify the entry belongs to the authenticated user
         VaultEntry entry = vaultEntryRepository.findByIdAndUserId(entryId, user.getId())
-                .orElseThrow(() -> new com.revature.passwordmanager.exception.ResourceNotFoundException(
-                        "Vault entry not found: " + entryId));
+                .orElseThrow(() -> new ResourceNotFoundException("Vault entry not found: " + entryId));
 
-        // Fetch all audit logs that reference this entry in their details
+        // Fetch all audit logs that reference this entry in their details (matched by title)
         List<AuditLog> allUserLogs = auditLogRepository.findByUserIdOrderByTimestampDesc(user.getId());
+        String entryTitle = entry.getTitle();
         List<AuditLog> entryLogs = allUserLogs.stream()
-                .filter(log -> isLogForEntry(log, entryId))
+                .filter(log -> isLogForEntry(log, entryId, entryTitle))
                 .collect(Collectors.toList());
 
-        Map<Long, VaultEntry> entryCache = new HashMap<>();
-        entryCache.put(entryId, entry);
         List<TimelineEventDTO> events = activityAggregator.aggregate(entryLogs, user.getId());
 
         // Also count snapshots for this entry (password changes)
@@ -193,6 +209,7 @@ public class VaultTimelineService {
     public TimelineStatsResponse getStats(String username, Integer days) {
         User user = userRepository.findByUsernameOrThrow(username);
         Long userId = user.getId();
+        auditLogService.logAction(username, AuditAction.TIMELINE_VIEWED, "Viewed timeline stats");
 
         List<AuditLog> logs = fetchLogs(userId, days);
         List<TimelineEventDTO> events = activityAggregator.aggregate(logs, userId);
@@ -270,6 +287,8 @@ public class VaultTimelineService {
     }
 
     private String computeMostActiveDayOfWeek(List<AuditLog> logs) {
+        // Fix: return null for empty log sets instead of defaulting to "Sunday"
+        if (logs.isEmpty()) return null;
         int[] counts = new int[7];
         for (AuditLog log : logs) {
             int dayIdx = log.getTimestamp().getDayOfWeek().getValue() % 7; // 0=Sun
@@ -279,12 +298,14 @@ public class VaultTimelineService {
         for (int i = 1; i < 7; i++) {
             if (counts[i] > counts[maxIdx]) maxIdx = i;
         }
-        // Convert back: index 0 = Sunday
+        // Convert back: index 0 = Sunday (ISO Sunday = 7, getValue()%7 = 0)
         int javaDayVal = maxIdx == 0 ? 7 : maxIdx;
         return DayOfWeek.of(javaDayVal).getDisplayName(TextStyle.FULL, Locale.getDefault());
     }
 
-    private int computeMostActiveHour(List<AuditLog> logs) {
+    private Integer computeMostActiveHour(List<AuditLog> logs) {
+        // Fix: return null for empty log sets instead of defaulting to midnight (0)
+        if (logs.isEmpty()) return null;
         int[] counts = new int[24];
         for (AuditLog log : logs) {
             counts[log.getTimestamp().getHour()]++;
@@ -373,25 +394,24 @@ public class VaultTimelineService {
 
     private List<TimelineStatsResponse.DailyActivityBucket> buildDailyBuckets(
             List<TimelineEventDTO> events) {
-        // Group by date
         Map<LocalDate, TimelineStatsResponse.DailyActivityBucket> buckets = new TreeMap<>();
         for (TimelineEventDTO event : events) {
             LocalDate date = event.getTimestamp().toLocalDate();
             buckets.computeIfAbsent(date, d -> TimelineStatsResponse.DailyActivityBucket.builder()
                     .date(d.format(DATE_FORMATTER))
-                    .count(0)
-                    .vaultCount(0)
-                    .securityCount(0)
-                    .sharingCount(0)
-                    .authCount(0)
+                    .count(0).vaultCount(0).securityCount(0)
+                    .sharingCount(0).authCount(0).backupCount(0).breachCount(0)
                     .build());
             TimelineStatsResponse.DailyActivityBucket bucket = buckets.get(date);
             bucket.setCount(bucket.getCount() + 1);
+            // Fix: BACKUP and BREACH now have dedicated counters; no events are silently dropped
             switch (event.getCategory()) {
-                case "VAULT" -> bucket.setVaultCount(bucket.getVaultCount() + 1);
-                case "SECURITY", "BREACH" -> bucket.setSecurityCount(bucket.getSecurityCount() + 1);
-                case "SHARING" -> bucket.setSharingCount(bucket.getSharingCount() + 1);
-                case "AUTH" -> bucket.setAuthCount(bucket.getAuthCount() + 1);
+                case "VAULT"    -> bucket.setVaultCount(bucket.getVaultCount() + 1);
+                case "SECURITY" -> bucket.setSecurityCount(bucket.getSecurityCount() + 1);
+                case "BREACH"   -> bucket.setBreachCount(bucket.getBreachCount() + 1);
+                case "SHARING"  -> bucket.setSharingCount(bucket.getSharingCount() + 1);
+                case "AUTH"     -> bucket.setAuthCount(bucket.getAuthCount() + 1);
+                case "BACKUP"   -> bucket.setBackupCount(bucket.getBackupCount() + 1);
             }
         }
         return new ArrayList<>(buckets.values());
@@ -414,7 +434,18 @@ public class VaultTimelineService {
 
     private double computeAvgPerDay(List<TimelineEventDTO> events, Integer days) {
         if (events.isEmpty()) return 0.0;
-        int effectiveDays = (days != null && days > 0) ? days : 365;
+        long effectiveDays;
+        if (days != null && days > 0) {
+            effectiveDays = days;
+        } else {
+            // Fix: compute actual span from the oldest to newest event instead of hardcoded 365
+            LocalDateTime oldest = events.stream()
+                    .map(TimelineEventDTO::getTimestamp)
+                    .min(Comparator.naturalOrder())
+                    .orElse(LocalDateTime.now());
+            effectiveDays = java.time.temporal.ChronoUnit.DAYS.between(oldest, LocalDateTime.now()) + 1;
+            if (effectiveDays <= 0) effectiveDays = 1;
+        }
         return Math.round((double) events.size() / effectiveDays * 100.0) / 100.0;
     }
 
