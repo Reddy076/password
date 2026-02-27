@@ -27,6 +27,12 @@ public class GlobalExceptionHandler {
     return buildErrorResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request);
   }
 
+  @ExceptionHandler(RateLimitExceededException.class)
+  public ResponseEntity<Object> handleRateLimitExceededException(RateLimitExceededException ex, WebRequest request) {
+    logger.warn("Rate limit exceeded: {}", ex.getMessage());
+    return buildErrorResponse(HttpStatus.TOO_MANY_REQUESTS, ex.getMessage(), request);
+  }
+
   @ExceptionHandler(AuthenticationException.class)
   public ResponseEntity<Object> handleAuthenticationException(AuthenticationException ex, WebRequest request) {
     logger.error("Authentication error: {}", ex.getMessage());
@@ -45,6 +51,12 @@ public class GlobalExceptionHandler {
     return buildErrorResponse(HttpStatus.FORBIDDEN, "You do not have permission to access this resource", request);
   }
 
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex, WebRequest request) {
+    logger.error("Illegal argument: {}", ex.getMessage());
+    return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+  }
+
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<Object> handleValidationExceptions(MethodArgumentNotValidException ex) {
     Map<String, String> errors = new HashMap<>();
@@ -61,6 +73,20 @@ public class GlobalExceptionHandler {
     body.put("details", errors);
 
     return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(org.springframework.web.HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<Object> handleMethodNotSupported(
+      org.springframework.web.HttpRequestMethodNotSupportedException ex, WebRequest request) {
+    logger.error("Method not allowed: {}", ex.getMessage());
+    return buildErrorResponse(HttpStatus.METHOD_NOT_ALLOWED, ex.getMessage(), request);
+  }
+
+  @ExceptionHandler(org.springframework.web.bind.MissingServletRequestParameterException.class)
+  public ResponseEntity<Object> handleMissingParams(
+      org.springframework.web.bind.MissingServletRequestParameterException ex, WebRequest request) {
+    logger.error("Missing parameter: {}", ex.getMessage());
+    return buildErrorResponse(HttpStatus.BAD_REQUEST, "Missing required parameter: " + ex.getParameterName(), request);
   }
 
   @ExceptionHandler(Exception.class)

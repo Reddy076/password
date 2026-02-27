@@ -7,7 +7,6 @@ import java.util.regex.Pattern;
 @Component
 public class MasterPasswordValidator {
 
-  // Minimum 12 chars, 1 uppercase, 1 lowercase, 1 digit, 1 special char
   private static final String PASSWORD_PATTERN = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!])(?=\\S+$).{12,}$";
 
   private final Pattern pattern = Pattern.compile(PASSWORD_PATTERN);

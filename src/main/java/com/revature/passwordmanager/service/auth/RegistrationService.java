@@ -5,7 +5,7 @@ import com.revature.passwordmanager.dto.response.UserResponse;
 import com.revature.passwordmanager.exception.AuthenticationException;
 import com.revature.passwordmanager.model.user.User;
 import com.revature.passwordmanager.repository.UserRepository;
-import com.revature.passwordmanager.security.MasterPasswordValidator;
+import com.revature.passwordmanager.service.email.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,42 +20,45 @@ public class RegistrationService {
 
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
-  private final MasterPasswordValidator masterPasswordValidator;
+  private final SecurityQuestionService securityQuestionService;
+  private final OtpService otpService;
+  private final EmailService emailService;
 
   @Transactional
   public UserResponse registerUser(RegistrationRequest request) {
-    // 1. Check if user already exists
+
     if (userRepository.existsByEmail(request.getEmail())) {
-      throw new AuthenticationException("Email is already in use");
+      throw new AuthenticationException("Email already in use");
     }
     if (userRepository.existsByUsername(request.getUsername())) {
-      throw new AuthenticationException("Username is already taken");
+      throw new AuthenticationException("Username already in use");
     }
 
-    // 2. Validate master password strength
-    if (!masterPasswordValidator.isValid(request.getMasterPassword())) {
-      throw new AuthenticationException("Weak master password: " + masterPasswordValidator.getRequirementsMessage());
+    if (request.getPasswordHint() != null && !request.getPasswordHint().trim().isEmpty()) {
+      if (request.getPasswordHint().toLowerCase().contains(request.getMasterPassword().toLowerCase())) {
+        throw new AuthenticationException("Password hint cannot contain the master password");
+      }
     }
 
-    // 3. Generate Salt (Random UUID for simplicity in this context, or could be
-    // CSPRNG bytes)
-    String salt = UUID.randomUUID().toString();
-
-    // 4. Create User Entity
-    User newUser = User.builder()
+    User user = User.builder()
         .email(request.getEmail())
         .username(request.getUsername())
-        .masterPasswordHash(passwordEncoder.encode(request.getMasterPassword())) // Store BCrypt hash for auth
-        .salt(salt)
-        .is2faEnabled(false)
+        .masterPasswordHash(passwordEncoder.encode(request.getMasterPassword()))
+        .passwordHint(request.getPasswordHint())
+        .salt(UUID.randomUUID().toString())
         .createdAt(LocalDateTime.now())
         .updatedAt(LocalDateTime.now())
+        .is2faEnabled(false)
+        .emailVerified(false)
         .build();
 
-    // 5. Save to DB
-    User savedUser = userRepository.save(newUser);
+    User savedUser = userRepository.save(user);
 
-    // 6. Return Response
+    securityQuestionService.saveSecurityQuestions(savedUser, request.getSecurityQuestions());
+
+    String otpCode = otpService.generateOtp(savedUser, "EMAIL_VERIFICATION");
+    emailService.sendOtpEmail(savedUser.getEmail(), otpCode);
+
     return UserResponse.builder()
         .id(savedUser.getId())
         .email(savedUser.getEmail())
@@ -63,5 +66,35 @@ public class RegistrationService {
         .is2faEnabled(savedUser.is2faEnabled())
         .createdAt(savedUser.getCreatedAt())
         .build();
+  }
+
+  @Transactional
+  public void verifyEmail(String username, String otpCode) {
+    User user = userRepository.findByUsername(username)
+        .or(() -> userRepository.findByEmail(username))
+        .orElseThrow(() -> new AuthenticationException("User not found"));
+
+    if (Boolean.TRUE.equals(user.getEmailVerified())) {
+      throw new AuthenticationException("Email is already verified");
+    }
+
+    otpService.validateOtp(user, otpCode, "EMAIL_VERIFICATION");
+
+    user.setEmailVerified(true);
+    userRepository.save(user);
+  }
+
+  @Transactional
+  public void resendVerificationOtp(String username) {
+    User user = userRepository.findByUsername(username)
+        .or(() -> userRepository.findByEmail(username))
+        .orElseThrow(() -> new AuthenticationException("User not found"));
+
+    if (Boolean.TRUE.equals(user.getEmailVerified())) {
+      throw new AuthenticationException("Email is already verified");
+    }
+
+    String otpCode = otpService.generateOtp(user, "EMAIL_VERIFICATION");
+    emailService.sendOtpEmail(user.getEmail(), otpCode);
   }
 }

@@ -1,0 +1,100 @@
+# Rev-PasswordManager Frontend — Revised Implementation Plan
+
+## Problem: Broken Application Flow
+
+The current implementation has critical navigation gaps that prevent the app from working as a cohesive product:
+
+1. **Login redirects to login:** After login, `router.navigate(['/'])` hits the default route which `redirectTo: 'login'` — creating an infinite loop back to login
+2. **No navigation UI:** The [AppComponent](file:///e:/New%20folder%20%284%29/Rev-PasswordManager/rev-password-manager-client/src/app/app.component.ts#4-14) has placeholder comments for a sidebar and navbar but they were never built — users can't reach `/profile` or any other page
+3. **No dashboard:** There's no landing page after login, so users have nowhere to go
+
+> [!IMPORTANT]
+> This plan introduces a **Layout Shell** architecture: auth pages (login, register, forgot-password) render full-screen, while authenticated pages (dashboard, profile, vault) render inside a shared layout with a sidebar and top navbar. This is the standard pattern for SaaS-style apps.
+
+## Proposed Changes
+
+### Phase 2.3: Application Shell & Navigation (NEW — Must Do First)
+
+This is the missing glue that connects all existing features into a working app.
+
+---
+
+#### [NEW] [layout.component.ts](file:///e:/New%20folder%20(4)/Rev-PasswordManager/rev-password-manager-client/src/app/layout/layout.component.ts)
+
+A **shell layout** component wrapping all authenticated routes. Contains:
+- **Sidebar** — Navigation links: Dashboard, Vault, Profile, Logout
+- **Top Navbar** — Shows current user info, quick actions
+- **Content Area** — `<router-outlet>` for child pages
+
+#### [NEW] [dashboard.component.ts](file:///e:/New%20folder%20(4)/Rev-PasswordManager/rev-password-manager-client/src/app/features/dashboard/dashboard.component.ts)
+
+A simple **dashboard landing page** that shows:
+- Welcome message with username
+- Quick stats (total vault entries, categories, etc.)
+- Quick action buttons (Add Entry, Go to Vault)
+
+This becomes the default authenticated route (`/dashboard`).
+
+#### [MODIFY] [app.routes.ts](file:///e:/New%20folder%20(4)/Rev-PasswordManager/rev-password-manager-client/src/app/app.routes.ts)
+
+Restructure routes:
+
+```typescript
+// Public routes (full-screen, no shell)
+{ path: 'login', loadComponent: LoginComponent },
+{ path: 'register', loadComponent: RegisterComponent },
+{ path: 'forgot-password', loadComponent: ForgotPasswordComponent },
+
+// Authenticated routes (inside LayoutComponent shell)
+{
+  path: '',
+  component: LayoutComponent,
+  canActivate: [authGuard],
+  children: [
+    { path: 'dashboard', loadComponent: DashboardComponent },
+    { path: 'profile', loadComponent: ProfileComponent },
+    // Phase 3: { path: 'vault', ... }
+    { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
+  ]
+},
+
+// Wildcard
+{ path: '**', redirectTo: 'login' }
+```
+
+#### [MODIFY] [login.component.ts](file:///e:/New%20folder%20(4)/Rev-PasswordManager/rev-password-manager-client/src/app/features/auth/login/login.component.ts)
+
+Change post-login navigation from `router.navigate(['/'])` → `router.navigate(['/dashboard'])`.
+
+#### [MODIFY] [app.component.html](file:///e:/New%20folder%20(4)/Rev-PasswordManager/rev-password-manager-client/src/app/app.component.html)
+
+Simplify to just `<router-outlet>` — the layout shell handles wrapper styling for authenticated routes.
+
+---
+
+### Summary of Remaining Phases (Unchanged)
+
+| Phase | Content | Status |
+|-------|---------|--------|
+| 2.1 | Login, Register, Forgot Password | ✅ Complete |
+| 2.2 | Profile, Change Password, Read-Only Mode | ✅ Complete |
+| **2.3** | **Layout Shell, Sidebar, Navbar, Dashboard** | **🔲 Next** |
+| 3.1 | Vault Dashboard & List View | 🔲 Planned |
+| 3.2 | Vault Entry CRUD | 🔲 Planned |
+| 4.1 | Category Management | 🔲 Planned |
+| 4.2 | Folder Hierarchy | 🔲 Planned |
+| 5.1 | Notifications System | 🔲 Planned |
+| 5.2 | Security Alerts | 🔲 Planned |
+
+## Verification Plan
+
+### Automated Tests
+- Jasmine tests for `LayoutComponent` (sidebar links, logout)
+- Jasmine tests for `DashboardComponent` (rendering)
+- Verify all existing 31 tests remain green
+
+### Manual Verification
+1. Login → should land on `/dashboard` with sidebar visible
+2. Click "Profile" in sidebar → `/profile` opens with user data
+3. Click "Logout" → clears token, redirects to `/login`
+4. Directly visit `/dashboard` without token → redirected to `/login`

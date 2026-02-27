@@ -1,0 +1,336 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <h2>User Profile & Security</h2>
+    <p>Manage your account settings and preferences.</p>
+  </div>
+
+  @if (successMessage) {
+  <div class="alert alert-success">
+    {{ successMessage }}
+  </div>
+  }
+
+  @if (errorMessage) {
+  <div class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+  }
+
+  <div class="profile-grid">
+    <!-- Profile Info Card -->
+    <div class="profile-card">
+      <div class="card-header-row">
+        <h3>Account Information</h3>
+        @if (!isLoadingProfile && userProfile && !isEditingProfile) {
+        <button class="btn btn-secondary btn-sm" (click)="onEditProfile()">Edit Profile</button>
+        }
+      </div>
+
+      @if (isLoadingProfile) {
+      <p>Loading profile...</p>
+      } @else if (userProfile && !isEditingProfile) {
+      <div class="info-group">
+        <span class="label-text">Username</span>
+        <p>{{ userProfile.username }}</p>
+      </div>
+      <div class="info-group">
+        <span class="label-text">Name</span>
+        <p>{{ userProfile.name || 'Not provided' }}</p>
+      </div>
+      <div class="info-group">
+        <span class="label-text">Email Address</span>
+        <p>{{ userProfile.email }}</p>
+      </div>
+      <div class="info-group">
+        <span class="label-text">Phone Number</span>
+        <p>{{ userProfile.phoneNumber || 'Not provided' }}</p>
+      </div>
+      <div class="info-group">
+        <span class="label-text">Member Since</span>
+        <p>{{ userProfile.createdAt | date:'mediumDate' }}</p>
+      </div>
+      } @else if (userProfile && isEditingProfile) {
+      <form [formGroup]="profileForm" (ngSubmit)="onUpdateProfileSubmit()">
+        <div class="info-group">
+          <span class="label-text text-muted">Username (Cannot be changed)</span>
+          <p class="text-muted">{{ userProfile.username }}</p>
+        </div>
+        <div class="form-group">
+          <label for="name" class="form-label">Name</label>
+          <input type="text" id="name" class="form-control" formControlName="name" placeholder="Enter your full name">
+        </div>
+        <div class="form-group">
+          <label for="profileEmail" class="form-label">Email Address</label>
+          <input type="email" id="profileEmail" class="form-control" formControlName="email">
+        </div>
+        <div class="form-group">
+          <label for="phoneNumber" class="form-label">Phone Number</label>
+          <input type="text" id="phoneNumber" class="form-control" formControlName="phoneNumber"
+            placeholder="Enter your phone number">
+        </div>
+        <div class="btn-row">
+          <button type="submit" class="btn btn-primary" [disabled]="profileForm.invalid">Save Changes</button>
+          <button type="button" class="btn btn-secondary" (click)="onCancelEditProfile()">Cancel</button>
+        </div>
+      </form>
+      }
+    </div>
+
+    <!-- Change Password Card -->
+    <div class="profile-card">
+      <h3>Change Master Password</h3>
+      <form [formGroup]="passwordForm" (ngSubmit)="onChangePasswordSubmit()">
+        <div class="form-group">
+          <label for="currentPassword" class="form-label">Current Password</label>
+          <input type="password" id="currentPassword" class="form-control" formControlName="currentPassword"
+            placeholder="Enter current password">
+        </div>
+        <div class="form-group">
+          <label for="newPassword" class="form-label">New Password</label>
+          <input type="password" id="newPassword" class="form-control" formControlName="newPassword"
+            placeholder="Enter new password">
+        </div>
+        <button type="submit" class="btn btn-primary" [disabled]="passwordForm.invalid">Update Password</button>
+      </form>
+    </div>
+
+    <!-- Two-Factor Authentication Card -->
+    <div class="profile-card tfa-card">
+      <h3>Two-Factor Authentication</h3>
+
+      @if (isLoading2FA) {
+      <p>Loading 2FA status...</p>
+      } @else {
+      <div class="tfa-status">
+        <span class="status-badge" [class.enabled]="is2FAEnabled" [class.disabled]="!is2FAEnabled">
+          <lucide-icon [name]="is2FAEnabled ? 'check' : 'x'" [size]="16"></lucide-icon> {{ is2FAEnabled ? 'Enabled' :
+          'Disabled' }}
+        </span>
+        <p class="text-muted mt-2">
+          {{ is2FAEnabled
+          ? 'Your account is protected with two-factor authentication.'
+          : 'Add an extra layer of security to your account.' }}
+        </p>
+      </div>
+
+      <!-- Disabled state: Enable button -->
+      @if (!is2FAEnabled && !showSetupStep) {
+      <button class="btn btn-primary" (click)="onStartSetup()">Enable 2FA</button>
+      }
+
+      <!-- Setup Step: QR Code + Verify -->
+      @if (showSetupStep) {
+      <div class="tfa-setup">
+        @if (!showVerifyStep) {
+        <p class="text-muted">Setting up...</p>
+        } @else {
+        <div class="qr-section">
+          <p class="setup-instruction">Scan this QR code with your authenticator app (Google Authenticator, Authy,
+            etc.):</p>
+          <div class="qr-container">
+            <img [src]="qrCodeUrl" alt="2FA QR Code" class="qr-image">
+          </div>
+          <div class="secret-key-section">
+            <p class="text-muted">Or enter this key manually:</p>
+            <code class="secret-key">{{ secretKey }}</code>
+          </div>
+        </div>
+
+        <form [formGroup]="setupCodeForm" (ngSubmit)="onVerifySetup()" class="verify-form">
+          <div class="form-group">
+            <label for="verificationCode" class="form-label">Enter verification code from your app</label>
+            <input type="text" id="verificationCode" class="form-control otp-input" formControlName="verificationCode"
+              placeholder="000000" maxlength="6" autocomplete="one-time-code">
+          </div>
+          <div class="btn-row">
+            <button type="submit" class="btn btn-primary" [disabled]="setupCodeForm.invalid">Verify & Enable</button>
+            <button type="button" class="btn btn-secondary" (click)="onCancelSetup()">Cancel</button>
+          </div>
+        </form>
+        }
+      </div>
+      }
+
+      <!-- Enabled state: View codes, Regenerate, Disable -->
+      @if (is2FAEnabled && !showSetupStep) {
+      <div class="tfa-actions">
+        <button class="btn btn-secondary" (click)="onViewBackupCodes()">View Backup Codes</button>
+        <button class="btn btn-secondary" (click)="onRegenerateCodes()">Regenerate Codes</button>
+        <button class="btn btn-danger" (click)="onDisable2FA()">Disable 2FA</button>
+      </div>
+      }
+
+      <!-- Backup Codes Display -->
+      @if (showBackupCodes && backupCodes.length > 0) {
+      <div class="backup-codes-section">
+        <h4 style="display: flex; align-items: center; gap: 8px;"><lucide-icon name="key" [size]="20"></lucide-icon>
+          Backup Recovery Codes</h4>
+        <p class="text-muted">Save these codes in a safe place. Each code can only be used once.</p>
+        <div class="codes-grid">
+          @for (code of backupCodes; track code) {
+          <span class="backup-code">{{ code }}</span>
+          }
+        </div>
+        <div class="btn-row mt-2">
+          <button class="btn btn-secondary" (click)="copyBackupCodes()">
+            <lucide-icon name="copy" [size]="16" style="margin-right: 4px;"></lucide-icon> Copy All
+          </button>
+          <button class="btn btn-secondary" (click)="onHideBackupCodes()">Hide Codes</button>
+        </div>
+      </div>
+      }
+      }
+    </div>
+
+    <!-- Active Sessions Card -->
+    <div class="profile-card sessions-card">
+      <div class="sessions-header">
+        <h3>Active Devices & Sessions</h3>
+        @if (activeSessions.length > 1) {
+        <button class="btn btn-secondary btn-sm" (click)="onRevokeAllOtherSessions()">
+          Log Out of All Other Devices
+        </button>
+        }
+      </div>
+      <p class="text-muted mb-4">View and manage the devices currently logged into your account.</p>
+
+      @if (isLoadingSessions) {
+      <p>Loading active sessions...</p>
+      } @else if (activeSessions.length === 0) {
+      <p>No active sessions found.</p>
+      } @else {
+      <div class="sessions-list">
+        @for (session of activeSessions; track session.id) {
+        <div class="session-item" [class.current-session]="session.id === currentSessionId">
+          <div class="session-icon">
+            <span class="icon">
+              <lucide-icon [name]="session.deviceInfo?.toLowerCase()?.includes('mobile') ? 'smartphone' : 'laptop'"
+                [size]="20"></lucide-icon>
+            </span>
+          </div>
+          <div class="session-details">
+            <div class="session-title">
+              <strong>{{ formatDeviceInfo(session.deviceInfo) }}</strong>
+              @if (session.id === currentSessionId) {
+              <span class="badge badge-primary">Current Session</span>
+              }
+            </div>
+            <div class="session-meta">
+              <span style="display: flex; align-items: center; gap: 4px;"><lucide-icon name="map-pin"
+                  [size]="14"></lucide-icon> {{ session.location || 'Unknown Location' }}</span>
+              <span class="meta-separator">•</span>
+              <span style="display: flex; align-items: center; gap: 4px;"><lucide-icon name="lock"
+                  [size]="14"></lucide-icon> {{ session.ipAddress || 'Unknown IP' }}</span>
+            </div>
+            <div class="session-time text-muted">
+              Last active: {{ session.lastAccessedAt | date:'medium' }}
+            </div>
+          </div>
+          @if (session.id !== currentSessionId) {
+          <div class="session-action">
+            <button class="btn btn-outline-danger btn-sm" (click)="onRevokeSession(session.id!)">
+              Log Out
+            </button>
+          </div>
+          }
+        </div>
+        }
+      </div>
+      }
+    </div>
+
+    <!-- Preferences Card -->
+    <div class="profile-card">
+      <h3>Application Preferences</h3>
+      @if (isLoadingSettings) {
+      <p>Loading settings...</p>
+      } @else if (userSettings) {
+      <form [formGroup]="readOnlyForm">
+        <div class="toggle-group">
+          <label class="toggle-switch" for="readOnlyModeToggle">
+            <input type="checkbox" id="readOnlyModeToggle" formControlName="readOnlyMode" (change)="onToggleReadOnly()">
+            <span class="slider round"></span>
+          </label>
+          <span class="toggle-label">Enable Read-Only Mode</span>
+        </div>
+        <p class="text-muted mt-2">
+          When enabled, modifications to vault entries are restricted across all devices to prevent accidental deletion
+          or editing.
+        </p>
+      </form>
+      }
+    </div>
+
+    <!-- Danger Zone Card -->
+    <div class="profile-card danger-zone-card">
+      <h3 class="danger-title" style="display: flex; align-items: center; gap: 8px;"><lucide-icon name="alert-triangle"
+          [size]="24" class="text-danger"></lucide-icon> Danger Zone</h3>
+
+      @if (isDeletionPending) {
+      <div class="deletion-pending-banner">
+        <div class="deletion-icon"><lucide-icon name="calendar" [size]="32"></lucide-icon></div>
+        <div class="deletion-info">
+          <h4>Account Scheduled for Deletion</h4>
+          <p>Your account and all associated data will be permanently deleted on <strong>{{ deletionDate }}</strong>.
+          </p>
+          <p class="text-muted">You can cancel this action to keep your account.</p>
+        </div>
+      </div>
+      <button class="btn btn-primary" (click)="onCancelDeletion()" [disabled]="isCancellingDeletion"
+        id="cancelDeletionBtn" style="display: flex; align-items: center; gap: 8px;">
+        @if (!isCancellingDeletion) { <lucide-icon name="check" [size]="18"></lucide-icon> }
+        {{ isCancellingDeletion ? 'Cancelling...' : 'Cancel Deletion & Keep Account' }}
+      </button>
+      } @else {
+      <p class="danger-description">
+        Once your account is deleted, all your vault entries, settings, and data will be permanently removed after a
+        30-day grace period.
+        This action can be undone within the grace period by logging back in.
+      </p>
+      <button class="btn btn-danger" (click)="onDeleteAccount()" id="deleteAccountBtn"
+        style="display: flex; align-items: center; gap: 8px;">
+        <lucide-icon name="trash-2" [size]="18"></lucide-icon> Delete My Account
+      </button>
+      }
+    </div>
+  </div>
+
+  <!-- Delete Account Confirmation Modal -->
+  @if (showDeleteModal) {
+  <div class="modal-overlay" (click)="onCancelDeleteModal()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 style="display: flex; align-items: center; gap: 8px;"><lucide-icon name="alert-triangle" [size]="24"
+            class="text-danger"></lucide-icon> Delete Account</h3>
+        <button class="modal-close" (click)="onCancelDeleteModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="warning-box">
+          <p><strong>Warning:</strong> This will schedule your account for permanent deletion in 30 days. All your vault
+            entries, passwords, and settings will be lost.</p>
+        </div>
+        <form [formGroup]="deleteForm" (ngSubmit)="onConfirmDelete()">
+          <div class="form-group">
+            <label for="deletePassword" class="form-label">Enter your master password to confirm</label>
+            <input type="password" id="deletePassword" class="form-control" formControlName="masterPassword"
+              placeholder="Master password">
+          </div>
+          <div class="checkbox-group">
+            <label class="checkbox-label" for="deleteConfirmation">
+              <input type="checkbox" id="deleteConfirmation" formControlName="confirmation">
+              <span>I understand this action cannot be undone after 30 days</span>
+            </label>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="onCancelDeleteModal()">Cancel</button>
+            <button type="submit" class="btn btn-danger" [disabled]="deleteForm.invalid || isDeletingAccount"
+              id="confirmDeleteBtn">
+              {{ isDeletingAccount ? 'Deleting...' : 'Permanently Delete Account' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  }
+</div>

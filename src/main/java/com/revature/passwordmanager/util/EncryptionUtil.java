@@ -32,7 +32,6 @@ public class EncryptionUtil {
 
     byte[] cipherText = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
 
-    // Combine IV and CipherText
     byte[] encryptedData = new byte[GCM_IV_LENGTH + cipherText.length];
     System.arraycopy(iv, 0, encryptedData, 0, GCM_IV_LENGTH);
     System.arraycopy(cipherText, 0, encryptedData, GCM_IV_LENGTH, cipherText.length);
@@ -43,11 +42,9 @@ public class EncryptionUtil {
   public String decrypt(String encryptedData, SecretKey key) throws Exception {
     byte[] decodedData = Base64.getDecoder().decode(encryptedData);
 
-    // Extract IV
     byte[] iv = new byte[GCM_IV_LENGTH];
     System.arraycopy(decodedData, 0, iv, 0, GCM_IV_LENGTH);
 
-    // Extract CipherText
     byte[] cipherText = new byte[decodedData.length - GCM_IV_LENGTH];
     System.arraycopy(decodedData, GCM_IV_LENGTH, cipherText, 0, cipherText.length);
 
@@ -60,7 +57,7 @@ public class EncryptionUtil {
   }
 
   public SecretKey generateKey() throws NoSuchAlgorithmException {
-    // AES key generation
+
     KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
     keyGenerator.init(encryptionConfig.getKeySize());
     return keyGenerator.generateKey();
@@ -68,5 +65,26 @@ public class EncryptionUtil {
 
   public SecretKey getKeyFromBytes(byte[] keyBytes) {
     return new SecretKeySpec(keyBytes, "AES");
+  }
+
+  public SecretKey deriveKey(String password, String salt) {
+    try {
+      javax.crypto.SecretKeyFactory factory = javax.crypto.SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
+
+      int iterations = 100000;
+
+      int keyLength = encryptionConfig.getKeySize();
+
+      javax.crypto.spec.PBEKeySpec spec = new javax.crypto.spec.PBEKeySpec(
+          password.toCharArray(),
+          salt.getBytes(StandardCharsets.UTF_8),
+          iterations,
+          keyLength);
+
+      byte[] keyBytes = factory.generateSecret(spec).getEncoded();
+      return new SecretKeySpec(keyBytes, "AES");
+    } catch (Exception e) {
+      throw new RuntimeException("Error deriving key from password", e);
+    }
   }
 }

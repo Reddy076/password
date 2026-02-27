@@ -28,11 +28,17 @@ public class User {
   @Column(nullable = false, unique = true)
   private String username;
 
+  @Column(name = "name")
+  private String name;
+
+  @Column(name = "phone_number")
+  private String phoneNumber;
+
   @Column(name = "master_password_hash", nullable = false)
   private String masterPasswordHash;
 
   @Column(nullable = false)
-  private String salt; // Unique salt for this user's encryption
+  private String salt;
 
   @Column(name = "is_2fa_enabled")
   private boolean is2faEnabled = false;
@@ -50,4 +56,25 @@ public class User {
 
   @Column(name = "deletion_scheduled_at")
   private LocalDateTime deletionScheduledAt;
+
+  @Column(name = "failed_login_attempts")
+  @Builder.Default
+  private int failedLoginAttempts = 0;
+
+  @Column(name = "locked_until")
+  private LocalDateTime lockedUntil;
+
+  @Column(name = "lockout_count")
+  @Builder.Default
+  private int lockoutCount = 0;
+
+  @Column(name = "duress_password_hash")
+  private String duressPasswordHash;
+
+  @Column(name = "password_hint", length = 500)
+  private String passwordHint;
+
+  @Column(name = "email_verified")
+  @Builder.Default
+  private Boolean emailVerified = false;
 }

@@ -20,15 +20,14 @@ public class AccountDeletionService {
 
   @Transactional
   public void scheduleAccountDeletion(String username, AccountDeletionRequest request) {
-    User user = userRepository.findByUsername(username)
-        .orElseThrow(() -> new AuthenticationException("User not found"));
+    User user = userRepository.findByUsernameOrThrow(username);
 
     if (!passwordEncoder.matches(request.getMasterPassword(), user.getMasterPasswordHash())) {
       throw new AuthenticationException("Invalid master password");
     }
 
     user.setDeletionRequestedAt(LocalDateTime.now());
-    // Schedule deletion for 30 days from now
+
     user.setDeletionScheduledAt(LocalDateTime.now().plusDays(30));
 
     userRepository.save(user);
@@ -36,8 +35,7 @@ public class AccountDeletionService {
 
   @Transactional
   public void cancelAccountDeletion(String username) {
-    User user = userRepository.findByUsername(username)
-        .orElseThrow(() -> new AuthenticationException("User not found"));
+    User user = userRepository.findByUsernameOrThrow(username);
 
     if (user.getDeletionScheduledAt() == null) {
       throw new IllegalArgumentException("Account is not scheduled for deletion");

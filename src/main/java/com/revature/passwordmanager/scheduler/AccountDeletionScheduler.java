@@ -19,7 +19,6 @@ public class AccountDeletionScheduler {
   private static final Logger logger = LoggerFactory.getLogger(AccountDeletionScheduler.class);
   private final UserRepository userRepository;
 
-  // Run every day at midnight
   @Scheduled(cron = "0 0 0 * * ?")
   @Transactional
   public void deleteExpiredAccounts() {

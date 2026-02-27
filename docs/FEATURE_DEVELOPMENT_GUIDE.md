@@ -1,3 +1,4 @@
+
 # 🛠️ Feature Development Guide
 
 ## File Requirements per Feature
@@ -124,13 +125,13 @@ Users can permanently delete their account with all associated data. Includes mu
 |------|----------|---------|
 | `AccountDeletionService.java` | 📁 `service/user/` | Handle deletion logic and grace period |
 | `AccountDeletionRequest.java` | 📁 `dto/request/` | Master password + confirmation |
+| `UserController.java` | 📁 `controller/` | `/api/users/*` endpoints |
 | `AccountDeletionScheduler.java` | 📁 `scheduler/` | Permanent deletion after 30 days |
 
 ### Files to Update 📝
 | File | Changes |
 |------|---------|
 | `User.java` | Add `deletionRequestedAt`, `deletionScheduledAt` fields |
-| `UserController.java` | Add `DELETE /api/users/account` endpoint |
 | `UserRepository.java` | Add `findByDeletionScheduledAtBefore()` query |
 | `AuditLogService.java` | Log account deletion events |
 

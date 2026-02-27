@@ -1,0 +1,164 @@
+# 🚀 Angular Frontend Architecture Strategy
+
+This document provides a highly detailed, deeply thought-out strategy for implementing the complete frontend for the **Password Manager Application**. It encompasses the implementation strategy for all **32 backend features** organized into **8 Development Phases**, matching the robust backend architecture.
+
+---
+
+## 🏗️ 1. Core Structural Paradigm
+
+The frontend will be built as a modular **Angular 18+** application utilizing **Standalone Components**, **Signals** for state management, and **Lazy Loaded Feature Modules** to ensure lightning-fast performance even as the app scales to encompass all 32 features.
+
+### A. The Bento-Box UI/UX Design System
+A sleek, modern "Bento Box" design will be applied globally.
+*   **Colors**: Deep dark mode (`#0f172a` bg, `#1e293b` surfaces) with vibrant blue (`#3b82f6`) accents.
+*   **Layout**: CSS Grid-based modular panels with rounded corners (`16px`), subtle borders (`#334155`), and soft hover elevations.
+*   **Micro-interactions**: Smooth transitions on hover, click, and route changes to make the security app feel premium and responsive.
+*   **Accessibility**: High contrast text, ARIA attributes for screen readers, and full keyboard navigation (critical for a power-user password manager).
+
+### B. Global State Management (Angular Signals)
+We will bypass heavy libraries like NgRx in favor of lightweight Angular Signals, organized into focused state services:
+*   `AuthStateService`: Tracks current user, JWT tokens, and 2FA status.
+*   `VaultStateService`: Caches vault entries, folder trees, and categories to minimize API calls.
+*   `SettingsStateService`: Tracks user preferences (theme, read-only mode, generator defaults).
+*   `NotificationStateService`: Manages live alerts and the unread notification badge.
+
+---
+
+## 📦 PHASE 1: FOUNDATION & UX 
+
+### Feature 1: Project Setup & Core UX
+*   **Component Strategy:** Build the root `AppComponent` wrapping a `MainLayoutComponent` (Sidebar + Topbar + Main Router Outlet).
+*   **Theme Engine:** Implement a CSS variable-based theming engine allowing hot-swapping between Light/Dark/System themes.
+
+### Feature 2: User Entity & Profile
+*   **Components:** `UserProfileComponent`, `AvatarWidgetComponent`.
+*   **Implementation:** Allow users to view their account age, subscription status (if any), and update basic details. Use Angular Reactive Forms.
+
+### Feature 3: Frontend Encryption Engine
+*   **Crucial Architectural Decision:** While the backend handles AES-256 encryption using the master password hash, the frontend **must not store the raw master password**.
+*   **Implementation:** The master password is only kept in memory (using closures or isolated signal state) *transiently* when needed for highly sensitive operations or exports, and immediately purged.
+
+### Feature 4 & 4.5: Onboarding & Account Lifecycle
+*   **Components:** `RegistrationStepperComponent`, `AccountDeletionModalComponent`.
+*   **Implementation:** The registration should be a multi-step bento-box wizard: (1) Credentials, (2) Master Password setup with real-time strength meter (Feature 12 integration), (3) Security Questions setup.
+*   **Deletion:** A daunting, multi-step confirmation modal emphasizing the 30-day grace period.
+
+---
+
+## 🔐 PHASE 2: AUTHENTICATION FLOWS
+
+### Feature 5: Advanced Login
+*   **Components:** `LoginComponent`, `CaptchaWidgetComponent`.
+*   **Implementation:** Clean login UI utilizing an AuthGuard to bounce users to the dashboard if already authenticated. Integrates with HttpInterceptors to automatically attach JWTs to all subsequent requests. Refresh tokens are handled silently via a dedicated `AuthInterceptor`.
+
+### Feature 6: Session Management
+*   **Components:** `ActiveSessionsComponent`, `DeviceCardComponent`.
+*   **Implementation:** A dedicated settings sub-page showing a list of active devices (Browser icon, OS, IP, Location). Includes a prominent "Log Out All Other Devices" button calling `DELETE /api/sessions/all`.
+
+### Feature 7 & 8: Account Recovery
+*   **Components:** `ForgotPasswordComponent`, `SecurityQuestionChallengeComponent`, `ResetPasswordComponent`.
+*   **Implementation:** A graceful fallback flow. The user inputs their email, the system retrieves their specific security questions, they answer them in a form validation flow, and then securely reset the master password.
+
+### Feature 9: Two-Factor Authentication (2FA)
+*   **Components:** `TwoFactorSetupComponent` (QR Code Display), `OtpInputComponent` (6-digit specialized input box), `BackupCodesDisplayComponent`.
+*   **Implementation:** The login flow intercepts `requires2FA = true` responses and routes to the OTP step instead of the dashboard. Setup involves rendering the backend-provided QR code URL using a frontend QR library.
+
+---
+
+## 🗄️ PHASE 3: THE VAULT SYSTEM
+
+### Feature 10 & 11: Categories and Folders Organization
+*   **Components:** `SidebarNavigationComponent`, `FolderTreeWidgetComponent`.
+*   **Implementation:** The sidebar uses an Angular Material Tree or custom nested component to display the hierarchical folder structure (`api/folders`). Categories (`api/categories`) are displayed as fixed quick-filters via icons. Drag-and-drop support mapped to `PUT /api/folders/{id}/move`.
+
+### Feature 12: Password Generator Engine
+*   **Components:** `PasswordGeneratorModalComponent`, `InlineGeneratorWidgetComponent`.
+*   **Implementation:** A highly interactive tool with range sliders for length, toggle switches for character types, and a live updating visual strength meter. It can be triggered standalone or injected directly inside the Vault Entry creation form.
+
+### Feature 13: Core Vault CRUD
+*   **Components:** `VaultDashboardComponent`, `EntryDatatableComponent`, `EntryDetailsPaneComponent`.
+*   **Implementation:** The primary workspace. Uses virtual scrolling (CDK Virtual Scroll) for performance with thousands of entries. Clicking an entry slides out a details pane or opens a modal rather than navigating away, preserving context.
+
+### Feature 14: User Settings
+*   **Components:** `GlobalSettingsComponent`.
+*   **Implementation:** A tabbed interface controlling vault auto-lock timeouts, default generator settings, and UI preferences.
+
+---
+
+## 🔍 PHASE 4: VAULT MASTERY
+
+### Feature 15 & 15.5: Favorites & Highly Sensitive Shielding
+*   **Components:** `SensitiveUnlockOverlayComponent`.
+*   **Implementation:** Favorites are starred and pinned to the top of the list or a dedicated sidebar view. Highly Sensitive entries display asterisks `******` even when clicked. Attempting to view them triggers the `SensitiveUnlockOverlayComponent` requesting Master Password + OTP, implementing a strict 30-second localized timeout before reverting to `******`.
+
+### Feature 16: Advanced Search & Filter
+*   **Components:** `GlobalSearchBarComponent`, `FilterPillComponent`.
+*   **Implementation:** An omnibar at the top of the UI. Searching triggers debounced calls to `GET /api/vault/search`. Filters stack as removable "pills" below the search bar.
+
+### Feature 17: Trash & Recovery
+*   **Components:** `TrashBinComponent`.
+*   **Implementation:** A dedicated view showing soft-deleted items with heavily red-themed warnings. Features "Restore" and "Permanently Delete" action buttons per row, plus an "Empty Trash" global action.
+
+### Feature 18: Vault Snapshots (Version History)
+*   **Components:** `PasswordHistoryTimelineComponent`.
+*   **Implementation:** Inside the Entry Details pane, a "History" tab displays a vertical timeline of password changes, allowing the user to view previous passwords if they accidentally overwrote one payload.
+
+---
+
+## 🛡️ PHASE 5: SECURITY POSTURE
+
+### Feature 19 & 20: Audit Logging & Login History
+*   **Components:** `SecurityAuditLogComponent`.
+*   **Implementation:** A dense, highly filterable data table utilizing Angular Material Table or AG-Grid, displaying timestamps, IPs, and system actions (`PASSWORD_VIEWED`, `ENTRY_DELETED`, etc.).
+
+### Feature 21: Security Alerts
+*   **Components:** `AlertBannerComponent`, `AlertCenterDropdownComponent`.
+*   **Implementation:** Urgent alerts (e.g., "New login from unknown device") appear as fixed banners at the top of the app. A bell icon in the header collects lower-priority alerts.
+
+### Feature 22 & 22.5: Security Audit Report & Access Heatmap
+*   **Components:** `PasswordHealthDashboardComponent`, `GithubStyleHeatmapComponent`.
+*   **Implementation:** A visually rich dashboard using Chart.js or D3.js.
+    *   **Health:** Donut charts showing % of Weak/Reused/Old passwords with quick links to fix them.
+    *   **Heatmap:** A 7x24 grid visualizing the `api/users/activity-heatmap` data, shading cells darker based on access frequency to track usage habits.
+
+### Feature 23 & 24: Account Lockout & CAPTCHA
+*   **Components:** `LockoutTimerComponent`.
+*   **Implementation:** If the API returns a `429 Too Many Requests` or specific lockout code, the login UI disables the submit button and displays a countdown timer. CAPTCHA integrates seamlessly via Google reCAPTCHA v3 or Cloudflare Turnstile if requested by the backend.
+
+---
+
+## 📦 PHASE 6: DATA PORTABILITY
+
+### Feature 25 & 26: Export & Import
+*   **Components:** `DataSyncComponent`, `ProgressBarComponent`.
+*   **Implementation:** Secure areas requiring Master Password re-entry. Export generates the file client-side using `Blob` URLs from the encrypted backend string. Import uses a robust file uploader with chunking and progress bars for large vaults.
+
+### Feature 27: Third-Party Migration
+*   **Components:** `MigrationWizardComponent`.
+*   **Implementation:** A visual wizard guiding the user to upload CSVs from Chrome, LastPass, or 1Password. Uses the backend importer factory and displays an `ImportSummaryDialogComponent` showing success/failure counts before final confirmation.
+
+---
+
+## 🎨 PHASE 7: POLISH & UX
+
+### Feature 28: Global Notifications
+*   **Components:** `ToastNotificationService`, `ToastContainerComponent`.
+*   **Implementation:** A centralized toast service appearing in the bottom-right corner for non-blocking feedback ("Password Copied", "Settings Saved", "Entry Updated").
+
+### Feature 29: Adaptive Authentication UI
+*   **Implementation:** Invisible to the user primarily, relying on the backend, but the frontend captures deep device fingerprints (using libraries like FingerprintJS) during login to pass via the `X-Device-Fingerprint` header to support the backend risk analysis.
+
+### Feature 30: System Health
+*   **Components:** `SystemStatusFooterComponent`.
+*   **Implementation:** A tiny dot in the footer (Green/Yellow/Red) polling `GET /api/health` every few minutes. Clicking it reveals API latency and database connection status.
+
+---
+
+## 🚀 PHASE 8: ADVANCED EDGE CASES
+
+### Feature 31: Duress Mode Experience
+*   **Implementation:** The UI remains *exactly* the same to avoid tipping off an attacker. The backend serves the mock data, and the frontend renders it normally. However, settings to change passwords or export the vault are silently disabled or return fake success messages to maintain the illusion.
+
+### Feature 32: Read-Only Mode & Hints
+*   **Components:** `ReadOnlyRibbonComponent`.
+*   **Implementation:** A persistent diagonal ribbon or top bar indicating "READ-ONLY MODE ACTIVE". All creation/edit/delete buttons and FABs are disabled or hidden via an `*ngIf="!isReadOnly"` structural directive synced to the `SettingsStateService`. Password hints appear below the login field after 2 failed attempts.

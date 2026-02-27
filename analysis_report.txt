@@ -1,0 +1,50 @@
+=== DUPLICATE CODE BLOCKS ===
+No significant duplicate code blocks found.
+
+
+=== POTENTIALLY UNUSED METHODS ===
+(Note: Methods called via Reflection, external APIs, or frameworks might be falsely flagged)
+  - addCorsMappings()
+  - analyzeVault()
+  - cancelDeletion()
+  - changePassword()
+  - cleanupExpiredTrash()
+  - convertToDatabaseColumn()
+  - convertToEntityAttribute()
+  - customOpenAPI()
+  - decryptForImport()
+  - deleteAccount()
+  - deleteExpiredAccounts()
+  - encodeKey()
+  - generateNewKey()
+  - handleAccessDeniedException()
+  - handleAuthenticationException()
+  - handleBadCredentialsException()
+  - handleGlobalException()
+  - handleIllegalArgumentException()
+  - handleMethodNotSupported()
+  - handleRateLimitExceededException()
+  - handleResourceNotFoundException()
+  - handleValidationExceptions()
+  - importFromExternal()
+  - logAfterThrowing()
+  - logRestore()
+  - logRestoreAll()
+  - markAlertAsRead()
+  - register()
+  - resendOtp()
+  - terminateAllSessions()
+  - updateSecurityQuestions()
+  - validatePassword()
+
+
+=== POTENTIALLY UNUSED FILES / CLASSES ===
+(Excluding Spring Beans like Controllers/Services/Repositories)
+  - AuditLogAspect.java
+  - ChromeImporter.java
+  - FirefoxImporter.java
+  - GlobalExceptionHandler.java
+  - LastPassImporter.java
+  - LoggingAspect.java
+  - MasterPasswordValidator.java
+  - OnePasswordImporter.java

@@ -13,10 +13,6 @@ public class EncryptionService {
 
   private final EncryptionUtil encryptionUtil;
 
-  // In a real production scenario, we would use a Key Management Service (KMS)
-  // For this project, we might derive keys or store a master key securely.
-  // This is a placeholder for the actual key strategy.
-
   public String encrypt(String data, SecretKey key) {
     try {
       return encryptionUtil.encrypt(data, key);
@@ -48,5 +44,23 @@ public class EncryptionService {
   public SecretKey decodeKey(String base64Key) {
     byte[] decodedKey = Base64.getDecoder().decode(base64Key);
     return encryptionUtil.getKeyFromBytes(decodedKey);
+  }
+
+  public String encryptForExport(String data, String password, String salt) {
+    try {
+      SecretKey key = encryptionUtil.deriveKey(password, salt);
+      return encryptionUtil.encrypt(data, key);
+    } catch (Exception e) {
+      throw new RuntimeException("Error encrypting export data", e);
+    }
+  }
+
+  public String decryptForImport(String encryptedData, String password, String salt) {
+    try {
+      SecretKey key = encryptionUtil.deriveKey(password, salt);
+      return encryptionUtil.decrypt(encryptedData, key);
+    } catch (Exception e) {
+      throw new RuntimeException("Error decrypting import data", e);
+    }
   }
 }

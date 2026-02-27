@@ -14,5 +14,8 @@ public class AuthResponse {
   private String refreshToken;
   @Builder.Default
   private String tokenType = "Bearer";
-  private UserResponse user;
+  private String username;
+  private long expiresIn;
+  private boolean requires2FA;
+  private String message;
 }

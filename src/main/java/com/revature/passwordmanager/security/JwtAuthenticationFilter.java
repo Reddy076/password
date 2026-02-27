@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import com.revature.passwordmanager.service.auth.SessionService;
 
 @Component
 @RequiredArgsConstructor
@@ -22,6 +23,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   private final JwtTokenProvider jwtTokenProvider;
   private final UserDetailsService userDetailsService;
+  private final SessionService sessionService;
 
   @Override
   protected void doFilterInternal(
@@ -38,8 +40,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     jwt = authHeader.substring(7);
-    // Validating token first to avoid unnecessary DB calls if format is wrong
-    if (jwtTokenProvider.validateToken(jwt)) {
+
+    if (jwtTokenProvider.validateToken(jwt) && sessionService.isSessionActive(jwt)) {
       username = jwtTokenProvider.getUsernameFromToken(jwt);
 
       if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -47,7 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
             userDetails,
-            null,
+            jwt,
             userDetails.getAuthorities());
         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authToken);

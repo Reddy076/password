@@ -22,8 +22,6 @@ public class CustomUserDetailsService implements UserDetailsService {
         .or(() -> userRepository.findByEmail(username))
         .orElseThrow(() -> new UsernameNotFoundException("User not found with username or email: " + username));
 
-    // Note: PasswordManagerApplication users don't have roles yet, so we pass an
-    // empty list for authorities
     return new org.springframework.security.core.userdetails.User(
         user.getUsername(),
         user.getMasterPasswordHash(),

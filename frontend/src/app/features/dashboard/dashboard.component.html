@@ -1,0 +1,158 @@
+<div class="dashboard defender-style">
+
+  <!-- Top Search/Filter Area -->
+  <div class="dashboard-header">
+    <div class="search-bar-placeholder">
+      <span class="search-icon"><lucide-icon name="search" [size]="18"></lucide-icon></span>
+      <input type="text" placeholder="Search Passwords" class="search-input" disabled>
+    </div>
+    <div class="header-right">
+      <div class="last-checked">
+        <span class="checked-icon"><lucide-icon name="check" [size]="14"></lucide-icon></span>
+        <span class="checked-text">Checked: <strong>Just now</strong></span>
+        <button class="icon-btn" aria-label="Refresh"><lucide-icon name="rotate-cw" [size]="14"></lucide-icon></button>
+      </div>
+    </div>
+  </div>
+
+  @if (isLoading) {
+  <div class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading dashboard...</p>
+  </div>
+  } @else {
+
+  <div class="dashboard-content">
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- SECURITY SCORE SECTION                                         -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div class="score-section">
+
+      <!-- Donut Ring -->
+      <div class="score-ring-wrapper">
+        <svg class="score-ring" viewBox="0 0 120 120" width="140" height="140">
+          <!-- Background track -->
+          <circle cx="60" cy="60" r="54" fill="none" stroke="#E5E7EB" stroke-width="10" />
+          <!-- Filled arc — animated -->
+          <circle cx="60" cy="60" r="54" fill="none" [attr.stroke]="scoreColor" stroke-width="10" stroke-linecap="round"
+            [attr.stroke-dasharray]="donutDashArray" stroke-dashoffset="0" transform="rotate(-90 60 60)"
+            class="score-arc" />
+        </svg>
+        <div class="score-center">
+          <span class="score-number" [style.color]="scoreColor">{{ securityScore }}</span>
+          <span class="score-pct">/ 100</span>
+          <span class="score-label-badge" [style.color]="scoreColor">{{ scoreLabel }}</span>
+        </div>
+      </div>
+
+      <!-- Score Description -->
+      <div class="score-description">
+        <h2 class="score-title">Security Health</h2>
+        <p class="score-subtitle">
+          @if (securityScore >= 80) {
+          Your vault is in great shape. Keep it up!
+          } @else if (securityScore >= 50) {
+          Some passwords need attention. Review the issues below.
+          } @else {
+          Your vault has critical issues. Take action now.
+          }
+        </p>
+
+        <!-- 3 Metric Cards -->
+        <div class="metric-cards">
+
+          <a routerLink="/vault" [queryParams]="{filter: 'weak'}" class="metric-card metric-card--danger">
+            <div class="metric-card-icon">
+              <lucide-icon name="shield-alert" [size]="20"></lucide-icon>
+            </div>
+            <div class="metric-card-body">
+              <span class="metric-card-value">{{ dashboardData?.weakPasswordsCount || 0 }}</span>
+              <span class="metric-card-label">Weak Passwords</span>
+              <span class="metric-card-hint">Change these now</span>
+            </div>
+            <lucide-icon name="arrow-right" [size]="16" class="metric-card-arrow"></lucide-icon>
+          </a>
+
+          <a routerLink="/vault" [queryParams]="{filter: 'reused'}" class="metric-card metric-card--warning">
+            <div class="metric-card-icon">
+              <lucide-icon name="copy" [size]="20"></lucide-icon>
+            </div>
+            <div class="metric-card-body">
+              <span class="metric-card-value">{{ dashboardData?.reusedPasswordsCount || 0 }}</span>
+              <span class="metric-card-label">Reused Passwords</span>
+              <span class="metric-card-hint">Make them unique</span>
+            </div>
+            <lucide-icon name="arrow-right" [size]="16" class="metric-card-arrow"></lucide-icon>
+          </a>
+
+          <a routerLink="/vault" [queryParams]="{filter: 'old'}" class="metric-card metric-card--info">
+            <div class="metric-card-icon">
+              <lucide-icon name="calendar" [size]="20"></lucide-icon>
+            </div>
+            <div class="metric-card-body">
+              <span class="metric-card-value">{{ dashboardData?.oldPasswordsCount || 0 }}</span>
+              <span class="metric-card-label">Old Passwords</span>
+              <span class="metric-card-hint">Older than 90 days</span>
+            </div>
+            <lucide-icon name="arrow-right" [size]="16" class="metric-card-arrow"></lucide-icon>
+          </a>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- QUICK STATS ROW                                                -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div class="stats-pills">
+      <div class="stat-pill primary">
+        <div class="stat-pill-icon">
+          <lucide-icon name="folder" [size]="18"></lucide-icon>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ dashboardData?.totalVaultEntries || 0 }}</span>
+          <span class="stat-label">Vault Items</span>
+        </div>
+      </div>
+
+      <div class="stat-pill success">
+        <div class="stat-pill-icon">
+          <lucide-icon name="star" [size]="18"></lucide-icon>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ dashboardData?.totalFavorites || 0 }}</span>
+          <span class="stat-label">Favorites</span>
+        </div>
+      </div>
+
+      <div class="stat-pill danger">
+        <div class="stat-pill-icon">
+          <lucide-icon name="trash-2" [size]="18"></lucide-icon>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ trashCount }}</span>
+          <span class="stat-label">In Trash</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- QUICK ACTIONS                                                  -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div class="quick-actions-section">
+      <a routerLink="/vault" class="action-card new-entry-card">
+        <div class="action-icon-wrapper">
+          <lucide-icon name="plus" [size]="22"></lucide-icon>
+        </div>
+        <div class="action-text">
+          <span class="action-label">Add New Entry</span>
+          <span class="action-desc">Save a new password or secure note</span>
+        </div>
+        <lucide-icon name="arrow-right" [size]="16" class="action-arrow"></lucide-icon>
+      </a>
+    </div>
+
+  </div>
+  }
+</div>
