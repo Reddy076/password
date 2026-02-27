@@ -309,6 +309,43 @@ CREATE INDEX idx_security_metrics_user_id ON security_metrics_history(user_id);
 CREATE INDEX idx_security_metrics_recorded_at ON security_metrics_history(recorded_at);
 
 -- =============================================================================
+-- 7. FEATURE 34: BREACH MONITOR & DARK WEB SCANNER (2 Tables)
+-- =============================================================================
+
+-- Table: compromised_credentials
+CREATE TABLE compromised_credentials (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    vault_entry_id BIGINT NOT NULL,
+    pwned_count BIGINT NOT NULL,
+    hash_prefix VARCHAR(5),
+    is_resolved BOOLEAN DEFAULT FALSE,
+    resolved_at TIMESTAMP NULL,
+    detected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (vault_entry_id) REFERENCES vault_entries(id) ON DELETE CASCADE
+);
+
+-- Table: breach_scan_records
+CREATE TABLE breach_scan_records (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    trigger_type VARCHAR(20) NOT NULL,
+    entries_scanned INT NOT NULL DEFAULT 0,
+    compromised_found INT NOT NULL DEFAULT 0,
+    status VARCHAR(20) NOT NULL DEFAULT 'COMPLETED',
+    error_message VARCHAR(500),
+    scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_compromised_user_id ON compromised_credentials(user_id);
+CREATE INDEX idx_compromised_vault_entry ON compromised_credentials(vault_entry_id);
+CREATE INDEX idx_compromised_resolved ON compromised_credentials(is_resolved);
+CREATE INDEX idx_breach_scan_user_id ON breach_scan_records(user_id);
+CREATE INDEX idx_breach_scan_at ON breach_scan_records(scanned_at);
+
+-- =============================================================================
 -- END OF SCHEMA
 -- =============================================================================
 
