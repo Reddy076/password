@@ -346,6 +346,33 @@ CREATE INDEX idx_breach_scan_user_id ON breach_scan_records(user_id);
 CREATE INDEX idx_breach_scan_at ON breach_scan_records(scanned_at);
 
 -- =============================================================================
+-- 8. FEATURE 35: SECURE PASSWORD SHARING (1 Table)
+-- =============================================================================
+
+CREATE TABLE secure_shares (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    vault_entry_id BIGINT NOT NULL,
+    owner_id BIGINT NOT NULL,
+    recipient_email VARCHAR(255),
+    share_token VARCHAR(255) UNIQUE NOT NULL,
+    encrypted_password TEXT NOT NULL,
+    encryption_iv VARCHAR(255),
+    expires_at TIMESTAMP NOT NULL,
+    view_count INT DEFAULT 0,
+    max_views INT DEFAULT 1,
+    permission VARCHAR(30) NOT NULL DEFAULT 'VIEW_ONCE',
+    is_revoked BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (vault_entry_id) REFERENCES vault_entries(id) ON DELETE CASCADE,
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_secure_shares_token ON secure_shares(share_token);
+CREATE INDEX idx_secure_shares_owner ON secure_shares(owner_id);
+CREATE INDEX idx_secure_shares_recipient ON secure_shares(recipient_email);
+CREATE INDEX idx_secure_shares_expires ON secure_shares(expires_at);
+
+-- =============================================================================
 -- END OF SCHEMA
 -- =============================================================================
 
