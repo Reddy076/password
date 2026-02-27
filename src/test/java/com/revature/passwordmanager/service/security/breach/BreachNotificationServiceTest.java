@@ -136,8 +136,9 @@ class BreachNotificationServiceTest {
 
         ArgumentCaptor<Severity> severityCaptor = ArgumentCaptor.forClass(Severity.class);
         ArgumentCaptor<String> titleCaptor = ArgumentCaptor.forClass(String.class);
+        // Gap 7 fix: all-clear now uses BREACH_SCAN_COMPLETE, not PASSWORD_BREACHED
         verify(securityAlertService).createAlert(
-                eq("testuser"), eq(AlertType.PASSWORD_BREACHED),
+                eq("testuser"), eq(AlertType.BREACH_SCAN_COMPLETE),
                 titleCaptor.capture(), anyString(), severityCaptor.capture());
 
         assertEquals(Severity.LOW, severityCaptor.getValue());

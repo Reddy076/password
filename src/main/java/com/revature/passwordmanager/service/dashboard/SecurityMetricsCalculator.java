@@ -52,6 +52,8 @@ public class SecurityMetricsCalculator {
         int goodCount = 0;
         int strongCount = 0;
 
+        // Gap 3 fix: only group non-empty decrypted passwords to avoid counting
+        // decryption failures (empty string) as a reused-password group.
         Map<String, List<String>> decryptedPasswordGroups = new HashMap<>();
 
         for (VaultEntry entry : entries) {
@@ -68,9 +70,12 @@ public class SecurityMetricsCalculator {
                 }
             }
 
-            decryptedPasswordGroups
-                    .computeIfAbsent(decrypted, k -> new ArrayList<>())
-                    .add(entry.getTitle());
+            // Only track non-empty passwords for reuse detection
+            if (!decrypted.isBlank()) {
+                decryptedPasswordGroups
+                        .computeIfAbsent(decrypted, k -> new ArrayList<>())
+                        .add(entry.getTitle());
+            }
         }
 
         long reusedCount = decryptedPasswordGroups.values().stream()
@@ -111,15 +116,13 @@ public class SecurityMetricsCalculator {
         int veryWeakCount = 0;
         double totalScore = 0;
 
-        Map<String, List<VaultEntry>> byCategory = entries.stream()
-                .collect(Collectors.groupingBy(e ->
-                        e.getCategory() != null ? e.getCategory().getName() : "Uncategorized"));
-
-        List<PasswordHealthMetricsResponse.PasswordCategoryBreakdown> breakdowns = new ArrayList<>();
-
+        // Gap 1 fix: build a score cache in a single decryption pass so the
+        // per-category loop below can reuse results without re-decrypting.
+        Map<Long, Integer> scoreCache = new HashMap<>();
         for (VaultEntry entry : entries) {
             String decrypted = decryptSafely(entry);
             int score = passwordStrengthCalculator.calculateScore(decrypted);
+            scoreCache.put(entry.getId(), score);
             totalScore += score;
             String strengthLabel = passwordStrengthCalculator.getStrengthLabel(score);
             if (strengthLabel != null) {
@@ -133,13 +136,19 @@ public class SecurityMetricsCalculator {
             }
         }
 
+        Map<String, List<VaultEntry>> byCategory = entries.stream()
+                .collect(Collectors.groupingBy(e ->
+                        e.getCategory() != null ? e.getCategory().getName() : "Uncategorized"));
+
+        List<PasswordHealthMetricsResponse.PasswordCategoryBreakdown> breakdowns = new ArrayList<>();
+
         for (Map.Entry<String, List<VaultEntry>> catEntry : byCategory.entrySet()) {
             List<VaultEntry> catEntries = catEntry.getValue();
             double catTotalScore = 0;
             int catWeakCount = 0;
             for (VaultEntry e : catEntries) {
-                String decrypted = decryptSafely(e);
-                int score = passwordStrengthCalculator.calculateScore(decrypted);
+                // Reuse cached score — no second decryption
+                int score = scoreCache.getOrDefault(e.getId(), 0);
                 catTotalScore += score;
                 if (score < 40) catWeakCount++;
             }
@@ -169,7 +178,11 @@ public class SecurityMetricsCalculator {
         Map<String, List<VaultEntry>> byPassword = new HashMap<>();
         for (VaultEntry entry : entries) {
             String decrypted = decryptSafely(entry);
-            byPassword.computeIfAbsent(decrypted, k -> new ArrayList<>()).add(entry);
+            // Gap 3 fix: skip failed decryptions (empty string) — do not count
+            // entries that couldn't be decrypted as reusing the same "empty" password.
+            if (!decrypted.isBlank()) {
+                byPassword.computeIfAbsent(decrypted, k -> new ArrayList<>()).add(entry);
+            }
         }
 
         List<ReusedPasswordResponse.ReusedPasswordGroup> groups = new ArrayList<>();

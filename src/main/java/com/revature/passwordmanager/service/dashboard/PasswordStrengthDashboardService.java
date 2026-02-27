@@ -7,9 +7,11 @@ import com.revature.passwordmanager.dto.response.SecurityScoreResponse;
 import com.revature.passwordmanager.dto.response.SecurityTrendResponse;
 import com.revature.passwordmanager.exception.ResourceNotFoundException;
 import com.revature.passwordmanager.model.dashboard.SecurityMetricsHistory;
+import com.revature.passwordmanager.model.security.AuditLog.AuditAction;
 import com.revature.passwordmanager.model.user.User;
 import com.revature.passwordmanager.repository.SecurityMetricsHistoryRepository;
 import com.revature.passwordmanager.repository.UserRepository;
+import com.revature.passwordmanager.service.security.AuditLogService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,16 +27,23 @@ public class PasswordStrengthDashboardService {
     private final SecurityMetricsCalculator metricsCalculator;
     private final SecurityMetricsHistoryRepository historyRepository;
     private final UserRepository userRepository;
+    private final AuditLogService auditLogService;
 
     /**
      * Returns the overall security score (0-100) for the authenticated user
      * and persists a snapshot for trend tracking.
      */
+    /** Minimum gap between snapshot persists to avoid unbounded table growth. */
+    private static final long SNAPSHOT_COOLDOWN_MINUTES = 60;
+
     @Transactional
     public SecurityScoreResponse getSecurityScore(String username) {
         User user = userRepository.findByUsernameOrThrow(username);
         SecurityScoreResponse response = metricsCalculator.calculateSecurityScore(user.getId());
-        persistSnapshot(user, response);
+        // Gap 2 fix: only persist a snapshot if no snapshot exists within the last hour.
+        persistSnapshotIfCooldownElapsed(user, response);
+        // Gap 4 fix: audit log dashboard access
+        auditLogService.logAction(username, AuditAction.DASHBOARD_VIEWED, "Viewed security score dashboard");
         return response;
     }
 
@@ -44,6 +53,7 @@ public class PasswordStrengthDashboardService {
      */
     public PasswordHealthMetricsResponse getPasswordHealth(String username) {
         User user = userRepository.findByUsernameOrThrow(username);
+        auditLogService.logAction(username, AuditAction.DASHBOARD_VIEWED, "Viewed password health metrics");
         return metricsCalculator.calculatePasswordHealth(user.getId());
     }
 
@@ -52,6 +62,7 @@ public class PasswordStrengthDashboardService {
      */
     public ReusedPasswordResponse getReusedPasswords(String username) {
         User user = userRepository.findByUsernameOrThrow(username);
+        auditLogService.logAction(username, AuditAction.DASHBOARD_VIEWED, "Viewed reused passwords report");
         return metricsCalculator.findReusedPasswords(user.getId());
     }
 
@@ -60,6 +71,7 @@ public class PasswordStrengthDashboardService {
      */
     public PasswordAgeResponse getPasswordAge(String username) {
         User user = userRepository.findByUsernameOrThrow(username);
+        auditLogService.logAction(username, AuditAction.DASHBOARD_VIEWED, "Viewed password age distribution");
         return metricsCalculator.calculatePasswordAge(user.getId());
     }
 
@@ -98,18 +110,26 @@ public class PasswordStrengthDashboardService {
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
-    private void persistSnapshot(User user, SecurityScoreResponse score) {
-        SecurityMetricsHistory snapshot = SecurityMetricsHistory.builder()
-                .user(user)
-                .overallScore(score.getOverallScore())
-                .weakPasswordsCount(score.getWeakPasswords())
-                .reusedPasswordsCount(score.getReusedPasswords())
-                .oldPasswordsCount(score.getOldPasswords())
-                .strongPasswordsCount(score.getStrongPasswords())
-                .fairPasswordsCount(score.getFairPasswords())
-                .totalPasswordsCount(score.getTotalPasswords())
-                .build();
-        historyRepository.save(snapshot);
+    private void persistSnapshotIfCooldownElapsed(User user, SecurityScoreResponse score) {
+        LocalDateTime cooldownThreshold = LocalDateTime.now().minusMinutes(SNAPSHOT_COOLDOWN_MINUTES);
+        boolean recentSnapshotExists = historyRepository
+                .findTopByUserIdOrderByRecordedAtDesc(user.getId())
+                .map(latest -> latest.getRecordedAt().isAfter(cooldownThreshold))
+                .orElse(false);
+
+        if (!recentSnapshotExists) {
+            SecurityMetricsHistory snapshot = SecurityMetricsHistory.builder()
+                    .user(user)
+                    .overallScore(score.getOverallScore())
+                    .weakPasswordsCount(score.getWeakPasswords())
+                    .reusedPasswordsCount(score.getReusedPasswords())
+                    .oldPasswordsCount(score.getOldPasswords())
+                    .strongPasswordsCount(score.getStrongPasswords())
+                    .fairPasswordsCount(score.getFairPasswords())
+                    .totalPasswordsCount(score.getTotalPasswords())
+                    .build();
+            historyRepository.save(snapshot);
+        }
     }
 
     private int computeScoreChange(List<SecurityTrendResponse.TrendDataPoint> points) {

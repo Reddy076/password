@@ -10,6 +10,7 @@ import com.revature.passwordmanager.model.dashboard.SecurityMetricsHistory;
 import com.revature.passwordmanager.model.user.User;
 import com.revature.passwordmanager.repository.SecurityMetricsHistoryRepository;
 import com.revature.passwordmanager.repository.UserRepository;
+import com.revature.passwordmanager.service.security.AuditLogService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +39,9 @@ class PasswordStrengthDashboardServiceTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private AuditLogService auditLogService;
 
     @InjectMocks
     private PasswordStrengthDashboardService service;

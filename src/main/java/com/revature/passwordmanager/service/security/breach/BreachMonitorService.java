@@ -10,10 +10,12 @@ import com.revature.passwordmanager.model.security.breach.BreachScanRecord.Trigg
 import com.revature.passwordmanager.model.security.breach.CompromisedCredential;
 import com.revature.passwordmanager.model.user.User;
 import com.revature.passwordmanager.model.vault.VaultEntry;
+import com.revature.passwordmanager.model.security.AuditLog.AuditAction;
 import com.revature.passwordmanager.repository.BreachScanRecordRepository;
 import com.revature.passwordmanager.repository.CompromisedCredentialRepository;
 import com.revature.passwordmanager.repository.UserRepository;
 import com.revature.passwordmanager.repository.VaultEntryRepository;
+import com.revature.passwordmanager.service.security.AuditLogService;
 import com.revature.passwordmanager.service.security.EncryptionService;
 import com.revature.passwordmanager.util.EncryptionUtil;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,7 @@ public class BreachMonitorService {
     private final EncryptionUtil encryptionUtil;
     private final HaveIBeenPwnedClient hibpClient;
     private final BreachNotificationService notificationService;
+    private final AuditLogService auditLogService;
 
     // ── public API ────────────────────────────────────────────────────────────
 
@@ -91,6 +94,10 @@ public class BreachMonitorService {
                                     .build();
                             compromisedCredentialRepository.save(credential);
                             notificationService.notifyBreach(username, entry, pwnedCount);
+                            // Gap 8 fix: audit log each new breach detection
+                            auditLogService.logAction(username, AuditAction.BREACH_DETECTED,
+                                    String.format("Password breached: entry='%s' pwnedCount=%d",
+                                            entry.getTitle(), pwnedCount));
                             newlyCompromised.add(mapToCredentialResponse(credential, entry));
                         }
                     }
@@ -104,6 +111,10 @@ public class BreachMonitorService {
             breachScanRecordRepository.save(scanRecord);
 
             notificationService.notifyScanComplete(username, compromisedCount, entries.size());
+            // Gap 8 fix: audit log the scan run
+            auditLogService.logAction(username, AuditAction.BREACH_SCAN_RUN,
+                    String.format("Breach scan completed: scanned=%d compromised=%d trigger=%s",
+                            entries.size(), compromisedCount, triggerType.name()));
             logger.info("Breach scan complete: user={} scanned={} compromised={}",
                     username, entries.size(), compromisedCount);
 
@@ -225,6 +236,10 @@ public class BreachMonitorService {
         credential.setResolved(true);
         credential.setResolvedAt(LocalDateTime.now());
         compromisedCredentialRepository.save(credential);
+        // Gap 8 fix: audit log manual breach resolution
+        auditLogService.logAction(username, AuditAction.BREACH_RESOLVED,
+                String.format("Breach credential resolved: entry='%s'",
+                        credential.getVaultEntry().getTitle()));
 
         return mapToCredentialResponse(credential, credential.getVaultEntry());
     }

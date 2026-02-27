@@ -31,6 +31,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
   List<User> findByDeletionScheduledAtBefore(LocalDateTime dateTime);
 
+  /** Returns all active users — those NOT pending deletion. */
+  List<User> findByDeletionScheduledAtIsNull();
+
   @Modifying(clearAutomatically = true)
   @Query("UPDATE User u SET u.failedLoginAttempts = u.failedLoginAttempts + 1 WHERE u.username = :username OR u.email = :username")
   void incrementFailedLoginAttempts(@Param("username") String username);
