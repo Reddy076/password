@@ -8,9 +8,14 @@ import com.revature.passwordmanager.model.sharing.SecureShare;
 import com.revature.passwordmanager.model.sharing.SharePermission;
 import com.revature.passwordmanager.model.user.User;
 import com.revature.passwordmanager.model.vault.VaultEntry;
+import com.revature.passwordmanager.model.notification.Notification.NotificationType;
+import com.revature.passwordmanager.model.security.AuditLog.AuditAction;
 import com.revature.passwordmanager.repository.SecureShareRepository;
 import com.revature.passwordmanager.repository.UserRepository;
 import com.revature.passwordmanager.repository.VaultEntryRepository;
+import com.revature.passwordmanager.service.email.EmailService;
+import com.revature.passwordmanager.service.notification.NotificationService;
+import com.revature.passwordmanager.service.security.AuditLogService;
 import com.revature.passwordmanager.service.security.EncryptionService;
 import com.revature.passwordmanager.service.sharing.ShareEncryptionService.ShareEncryptionResult;
 import com.revature.passwordmanager.util.EncryptionUtil;
@@ -38,6 +43,9 @@ public class SecureShareService {
     private final EncryptionUtil encryptionUtil;
     private final ShareTokenGenerator tokenGenerator;
     private final ShareEncryptionService shareEncryptionService;
+    private final EmailService emailService;
+    private final NotificationService notificationService;
+    private final AuditLogService auditLogService;
 
     // ── create ────────────────────────────────────────────────────────────────
 
@@ -52,6 +60,12 @@ public class SecureShareService {
         VaultEntry entry = vaultEntryRepository.findByIdAndUserId(
                 request.getVaultEntryId(), owner.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vault entry not found"));
+
+        // Gap 14 fix: block sharing of highly sensitive entries
+        if (Boolean.TRUE.equals(entry.getIsHighlySensitive())) {
+            throw new IllegalArgumentException(
+                    "Entry '" + entry.getTitle() + "' is marked as highly sensitive and cannot be shared.");
+        }
 
         // Decrypt the vault password
         SecretKey vaultKey = encryptionUtil.deriveKey(
@@ -90,6 +104,31 @@ public class SecureShareService {
         logger.info("Secure share created: id={} token={} entry={} owner={}",
                 share.getId(), share.getShareToken(), entry.getId(), username);
 
+        // Gap 9 fix: email recipient if one was specified
+        if (request.getRecipientEmail() != null && !request.getRecipientEmail().isBlank()) {
+            String shareUrl = "/api/shares/" + share.getShareToken()
+                    + "#" + encrypted.getKeyBase64();
+            String expiresAt = share.getExpiresAt().toString();
+            emailService.sendShareNotificationEmail(
+                    request.getRecipientEmail(), username, shareUrl, expiresAt);
+
+            // Gap 10 fix: in-app notification for recipient if they are a registered user.
+            // Use a final copy of username for lambda capture.
+            final String senderUsername = username;
+            final SecureShare savedShare = share;
+            userRepository.findByEmail(request.getRecipientEmail()).ifPresent(recipient ->
+                notificationService.createNotification(
+                        recipient.getUsername(),
+                        NotificationType.ACCOUNT_ACTIVITY,
+                        "Secure Password Shared With You",
+                        senderUsername + " has shared a secure password link with you. " +
+                        "Check your email to access it. It expires at " + savedShare.getExpiresAt() + "."));
+        }
+
+        // Gap 8 (share audit): log share creation
+        auditLogService.logAction(username, AuditAction.SHARE_CREATED,
+                "Shared entry '" + entry.getTitle() + "' token=" + share.getShareToken());
+
         return toShareLinkResponse(share, encrypted.getKeyBase64());
     }
 
@@ -119,9 +158,25 @@ public class SecureShareService {
                 ? Integer.MAX_VALUE
                 : share.getMaxViews() - share.getViewCount();
 
+        // Gap 13 fix (CRITICAL): VaultEntry.username is stored encrypted — decrypt it
+        // before returning. If decryption fails, fall back to null gracefully.
+        String plainUsername = null;
+        try {
+            User owner = share.getOwner();
+            SecretKey vaultKey = encryptionUtil.deriveKey(
+                    owner.getMasterPasswordHash(), owner.getSalt());
+            plainUsername = encryptionService.decrypt(entry.getUsername(), vaultKey);
+        } catch (Exception e) {
+            logger.warn("Could not decrypt username for shared entry {}: {}", entry.getId(), e.getMessage());
+        }
+
+        // Audit log the share access
+        auditLogService.logAction(share.getOwner().getUsername(), AuditAction.SHARE_ACCESSED,
+                "Share accessed: token=" + share.getShareToken() + " viewCount=" + share.getViewCount());
+
         return SharedPasswordResponse.builder()
                 .title(entry.getTitle())
-                .username(entry.getUsername())
+                .username(plainUsername)
                 .encryptedPassword(share.getEncryptedPassword())
                 .encryptionIv(share.getEncryptionIv())
                 .websiteUrl(entry.getWebsiteUrl())
@@ -157,6 +212,8 @@ public class SecureShareService {
 
         share.setRevoked(true);
         shareRepository.save(share);
+        auditLogService.logAction(username, AuditAction.SHARE_REVOKED,
+                "Share revoked: id=" + shareId + " entry='" + share.getVaultEntry().getTitle() + "'");
         logger.info("Share revoked: id={} by user={}", shareId, username);
         return toShareLinkResponse(share, null);
     }

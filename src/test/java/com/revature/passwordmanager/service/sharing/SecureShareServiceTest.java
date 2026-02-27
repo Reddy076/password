@@ -11,6 +11,9 @@ import com.revature.passwordmanager.model.vault.VaultEntry;
 import com.revature.passwordmanager.repository.SecureShareRepository;
 import com.revature.passwordmanager.repository.UserRepository;
 import com.revature.passwordmanager.repository.VaultEntryRepository;
+import com.revature.passwordmanager.service.email.EmailService;
+import com.revature.passwordmanager.service.notification.NotificationService;
+import com.revature.passwordmanager.service.security.AuditLogService;
 import com.revature.passwordmanager.service.security.EncryptionService;
 import com.revature.passwordmanager.util.EncryptionUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +44,9 @@ class SecureShareServiceTest {
     @Mock private EncryptionUtil encryptionUtil;
     @Mock private ShareTokenGenerator tokenGenerator;
     @Mock private ShareEncryptionService shareEncryptionService;
+    @Mock private EmailService emailService;
+    @Mock private NotificationService notificationService;
+    @Mock private AuditLogService auditLogService;
 
     @InjectMocks private SecureShareService service;
 
@@ -79,6 +85,9 @@ class SecureShareServiceTest {
                     .permission(s.getPermission()).maxViews(s.getMaxViews()).viewCount(0)
                     .isRevoked(false).createdAt(LocalDateTime.now()).build();
         });
+
+        // stub userRepository.findByEmail for in-app notification lookup (Gap 10)
+        when(userRepository.findByEmail("bob@example.com")).thenReturn(Optional.empty());
 
         CreateShareRequest request = CreateShareRequest.builder()
                 .vaultEntryId(10L).recipientEmail("bob@example.com")
@@ -176,6 +185,8 @@ class SecureShareServiceTest {
                 SharePermission.VIEW_ONCE);
         when(shareRepository.findByShareToken("tok1")).thenReturn(Optional.of(share));
         when(shareRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(encryptionUtil.deriveKey(anyString(), anyString())).thenReturn(mockKey);
+        when(encryptionService.decrypt(anyString(), eq(mockKey))).thenReturn("user@example.com");
 
         SharedPasswordResponse result = service.getSharedPassword("tok1");
 
@@ -226,6 +237,8 @@ class SecureShareServiceTest {
                 Integer.MAX_VALUE, SharePermission.TEMPORARY_ACCESS);
         when(shareRepository.findByShareToken("tok5")).thenReturn(Optional.of(share));
         when(shareRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        when(encryptionUtil.deriveKey(anyString(), anyString())).thenReturn(mockKey);
+        when(encryptionService.decrypt(anyString(), eq(mockKey))).thenReturn("user@example.com");
 
         SharedPasswordResponse result = service.getSharedPassword("tok5");
         assertEquals(Integer.MAX_VALUE, result.getViewsRemaining());

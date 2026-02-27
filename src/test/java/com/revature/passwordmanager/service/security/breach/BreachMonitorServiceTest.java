@@ -14,6 +14,7 @@ import com.revature.passwordmanager.repository.BreachScanRecordRepository;
 import com.revature.passwordmanager.repository.CompromisedCredentialRepository;
 import com.revature.passwordmanager.repository.UserRepository;
 import com.revature.passwordmanager.repository.VaultEntryRepository;
+import com.revature.passwordmanager.service.security.AuditLogService;
 import com.revature.passwordmanager.service.security.EncryptionService;
 import com.revature.passwordmanager.util.EncryptionUtil;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,6 +46,7 @@ class BreachMonitorServiceTest {
     @Mock private EncryptionUtil encryptionUtil;
     @Mock private HaveIBeenPwnedClient hibpClient;
     @Mock private BreachNotificationService notificationService;
+    @Mock private AuditLogService auditLogService;
 
     @InjectMocks
     private BreachMonitorService service;

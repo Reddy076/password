@@ -9,7 +9,9 @@ import com.revature.passwordmanager.model.vault.Category;
 import com.revature.passwordmanager.model.vault.Folder;
 import com.revature.passwordmanager.model.vault.VaultEntry;
 import com.revature.passwordmanager.repository.CategoryRepository;
+import com.revature.passwordmanager.repository.CompromisedCredentialRepository;
 import com.revature.passwordmanager.repository.FolderRepository;
+import com.revature.passwordmanager.repository.SecureShareRepository;
 import com.revature.passwordmanager.repository.UserRepository;
 import com.revature.passwordmanager.repository.UserSettingsRepository;
 import com.revature.passwordmanager.repository.VaultEntryRepository;
@@ -50,7 +52,6 @@ public class VaultService {
   private final CategoryRepository categoryRepository;
   private final FolderRepository folderRepository;
   private final EncryptionService encryptionService;
-
   private final EncryptionUtil encryptionUtil;
   private final TwoFactorService twoFactorService;
   private final VaultSnapshotService vaultSnapshotService;
@@ -58,6 +59,10 @@ public class VaultService {
   private final NotificationService notificationService;
   private final UserSettingsRepository userSettingsRepository;
   private final com.revature.passwordmanager.service.security.SecurityAuditService securityAuditService;
+  // Gap 5 fix: auto-resolve breach credentials on password update
+  private final CompromisedCredentialRepository compromisedCredentialRepository;
+  // Gap 12 fix: auto-revoke stale shares on password update
+  private final SecureShareRepository secureShareRepository;
   private final com.revature.passwordmanager.util.PasswordStrengthCalculator passwordStrengthCalculator;
   private final DuressService duressService;
   private final JwtTokenProvider jwtTokenProvider;
@@ -217,6 +222,26 @@ public class VaultService {
 
       vaultSnapshotService.createSnapshot(entry);
       entry.setPassword(encryptionService.encrypt(request.getPassword(), key));
+
+      // Gap 5 fix: when password changes, auto-resolve any open CompromisedCredential
+      // records for this entry — the breach is mitigated by the new password.
+      compromisedCredentialRepository
+          .findByUserIdAndVaultEntryIdAndIsResolvedFalse(user.getId(), entry.getId())
+          .ifPresent(cred -> {
+            cred.setResolved(true);
+            cred.setResolvedAt(LocalDateTime.now());
+            compromisedCredentialRepository.save(cred);
+          });
+
+      // Gap 12 fix: auto-revoke all active shares for this entry since the
+      // shared ciphertext now holds the old (stale) password.
+      secureShareRepository.findActiveSharesByOwnerId(user.getId(), LocalDateTime.now())
+          .stream()
+          .filter(s -> s.getVaultEntry().getId().equals(entry.getId()))
+          .forEach(s -> {
+            s.setRevoked(true);
+            secureShareRepository.save(s);
+          });
     }
     if (request.getUsername() != null && !request.getUsername().equals("******")) {
       entry.setUsername(encryptionService.encrypt(request.getUsername(), key));

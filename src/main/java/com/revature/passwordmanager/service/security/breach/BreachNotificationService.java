@@ -58,14 +58,16 @@ public class BreachNotificationService {
      */
     public void notifyScanComplete(String username, int compromisedCount, int totalScanned) {
         if (compromisedCount == 0) {
+            // Gap 7 fix: use BREACH_SCAN_COMPLETE (not PASSWORD_BREACHED) for all-clear
             securityAlertService.createAlert(
                     username,
-                    AlertType.PASSWORD_BREACHED,
+                    AlertType.BREACH_SCAN_COMPLETE,
                     "Breach Scan Complete — All Clear",
                     String.format("Scanned %d password(s). No breached passwords found. Your vault looks safe!",
                             totalScanned),
                     Severity.LOW);
         } else {
+            // Compromised passwords found — PASSWORD_BREACHED is correct here
             securityAlertService.createAlert(
                     username,
                     AlertType.PASSWORD_BREACHED,

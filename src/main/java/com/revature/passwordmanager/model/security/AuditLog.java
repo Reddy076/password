@@ -47,6 +47,16 @@ public class AuditLog {
     ENTRY_DELETED,
     PASSWORD_VIEWED,
     ENTRY_RESTORED,
-    VAULT_EXPORTED
+    VAULT_EXPORTED,
+    // Feature 33 — Dashboard
+    DASHBOARD_VIEWED,
+    // Feature 34 — Breach Monitor
+    BREACH_SCAN_RUN,
+    BREACH_DETECTED,
+    BREACH_RESOLVED,
+    // Feature 35 — Secure Sharing
+    SHARE_CREATED,
+    SHARE_ACCESSED,
+    SHARE_REVOKED
   }
 }

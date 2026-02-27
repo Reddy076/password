@@ -20,6 +20,46 @@ public class EmailService {
   @Value("${spring.mail.username}")
   private String fromEmail;
 
+  /**
+   * Gap 9 fix: notifies a share recipient that a secure password link has been
+   * shared with them.
+   *
+   * @param toEmail         recipient's email address
+   * @param senderUsername  username of the person who created the share
+   * @param shareUrl        the full share URL (including fragment key)
+   * @param expiresAt       when the share expires, formatted for display
+   */
+  @Async
+  public void sendShareNotificationEmail(String toEmail, String senderUsername,
+                                         String shareUrl, String expiresAt) {
+    log.info("Sending share notification email to: {}", toEmail);
+    try {
+      MimeMessage message = javaMailSender.createMimeMessage();
+      MimeMessageHelper helper = new MimeMessageHelper(message, true);
+
+      helper.setFrom(fromEmail);
+      helper.setTo(toEmail);
+      helper.setSubject(senderUsername + " shared a secure password with you — Rev-PasswordManager");
+
+      String content = String.format(
+          "<h3>Rev-PasswordManager — Secure Password Share</h3>" +
+          "<p><strong>%s</strong> has shared a secure, time-limited password link with you.</p>" +
+          "<p><a href=\"%s\">Click here to view the shared password</a></p>" +
+          "<p><strong>This link expires at: %s</strong></p>" +
+          "<p>For security, this link can only be viewed a limited number of times. " +
+          "Do not forward it to others.</p>" +
+          "<p>If you did not expect this, please ignore this email.</p>",
+          senderUsername, shareUrl, expiresAt);
+
+      helper.setText(content, true);
+      javaMailSender.send(message);
+      log.info("Share notification email sent successfully to: {}", toEmail);
+    } catch (MessagingException e) {
+      log.error("Failed to send share notification email to {}: {}", toEmail, e.getMessage());
+      // Non-fatal: share creation should not fail if email fails
+    }
+  }
+
   @Async
   public void sendOtpEmail(String toEmail, String otpCode) {
     log.info("Sending OTP email to: {}", toEmail);

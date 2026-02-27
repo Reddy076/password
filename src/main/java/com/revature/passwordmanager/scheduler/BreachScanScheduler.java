@@ -29,7 +29,10 @@ public class BreachScanScheduler {
     public void runDailyBreachScan() {
         logger.info("Starting scheduled daily breach scan for all users...");
 
-        List<User> users = userRepository.findAll();
+        // Gap 6 fix: only scan active users — exclude accounts pending deletion
+        // to avoid key-derivation failures on partially-deleted users and wasted
+        // HIBP API quota.
+        List<User> users = userRepository.findByDeletionScheduledAtIsNull();
         int successCount = 0;
         int failCount = 0;
 
