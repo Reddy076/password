@@ -1,0 +1,160 @@
+// ============================================================
+// REVAULTX — UTILITY CLASSES
+// ============================================================
+
+// ── Text Utilities ────────────────────────────────────────────
+.text-primary-color   { color: var(--text-primary) !important; }
+.text-secondary-color { color: var(--text-secondary) !important; }
+.text-muted-color     { color: var(--text-muted) !important; }
+.text-accent          { color: var(--accent-primary) !important; }
+.text-success         { color: var(--accent-success) !important; }
+.text-warning         { color: var(--accent-warning) !important; }
+.text-danger          { color: var(--accent-danger) !important; }
+.text-info            { color: var(--accent-info) !important; }
+.text-mono            { font-family: var(--font-mono) !important; }
+
+// ── Background Utilities ──────────────────────────────────────
+.bg-surface   { background: var(--bg-surface) !important; }
+.bg-elevated  { background: var(--bg-elevated) !important; }
+.bg-hover     { background: var(--bg-hover) !important; }
+
+// ── Border Utilities ──────────────────────────────────────────
+.border-subtle  { border-color: var(--border-subtle) !important; }
+.border-default { border-color: var(--border-default) !important; }
+.border-accent  { border-color: var(--accent-primary) !important; }
+
+// ── Radius Utilities ──────────────────────────────────────────
+.rounded-pill-sm { border-radius: var(--pill-radius-sm) !important; }
+.rounded-pill-md { border-radius: var(--pill-radius-md) !important; }
+.rounded-pill-lg { border-radius: var(--pill-radius-lg) !important; }
+.rounded-pill-xl { border-radius: var(--pill-radius-xl) !important; }
+.rounded-full    { border-radius: var(--pill-radius-full) !important; }
+
+// ── Flex Utilities ────────────────────────────────────────────
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-start {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.gap-1 { gap: var(--space-1); }
+.gap-2 { gap: var(--space-2); }
+.gap-3 { gap: var(--space-3); }
+.gap-4 { gap: var(--space-4); }
+.gap-5 { gap: var(--space-5); }
+.gap-6 { gap: var(--space-6); }
+
+// ── Overflow ──────────────────────────────────────────────────
+.overflow-hidden { overflow: hidden; }
+.text-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// ── Cursor ────────────────────────────────────────────────────
+.cursor-pointer { cursor: pointer; }
+.cursor-default { cursor: default; }
+.no-select      { user-select: none; }
+
+// ── Visibility ────────────────────────────────────────────────
+.invisible { visibility: hidden; }
+.opacity-0 { opacity: 0; }
+.opacity-50 { opacity: 0.5; }
+
+// ── Scrollbar ─────────────────────────────────────────────────
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-default) transparent;
+
+  &::-webkit-scrollbar { width: 6px; height: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--border-default);
+    border-radius: 3px;
+  }
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+// ── Glow Effects ──────────────────────────────────────────────
+.glow-primary { box-shadow: 0 0 20px var(--glow-primary); }
+.glow-success { box-shadow: 0 0 20px var(--glow-success); }
+.glow-danger  { box-shadow: 0 0 20px var(--glow-danger); }
+
+// ── Divider ───────────────────────────────────────────────────
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  margin: 16px 0;
+}
+
+// ── Loading Overlay ───────────────────────────────────────────
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 15, 30, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  z-index: 10;
+}
+
+// ── Responsive Helpers ────────────────────────────────────────
+.hide-mobile  { @media (max-width: 767px)  { display: none !important; } }
+.hide-tablet  { @media (max-width: 991px)  { display: none !important; } }
+.show-mobile  { @media (min-width: 768px)  { display: none !important; } }
+.show-tablet  { @media (min-width: 992px)  { display: none !important; } }
+
+// ── Content Padding ───────────────────────────────────────────
+.content-padding {
+  padding: 24px 28px;
+
+  @media (max-width: 767px) {
+    padding: 16px;
+  }
+}
+
+// ── Page Header ───────────────────────────────────────────────
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 24px 28px 0;
+  flex-wrap: wrap;
+
+  @media (max-width: 767px) {
+    padding: 16px 16px 0;
+  }
+}
+
+// ── Frosted Glass ─────────────────────────────────────────────
+.frosted {
+  background: var(--island-bg);
+  backdrop-filter: var(--island-blur);
+  -webkit-backdrop-filter: var(--island-blur);
+  border: var(--island-border);
+}
