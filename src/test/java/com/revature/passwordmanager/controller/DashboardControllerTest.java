@@ -359,4 +359,141 @@ class DashboardControllerTest {
         mockMvc.perform(get("/api/dashboard/trends"))
                 .andExpect(status().isUnauthorized());
     }
+
+    // ── Response Content-Type ─────────────────────────────────────────────────
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void allEndpoints_ShouldReturnJsonContentType() throws Exception {
+        when(dashboardService.getSecurityScore("testuser"))
+                .thenReturn(SecurityScoreResponse.builder().overallScore(80).scoreLabel("Good").build());
+        when(dashboardService.getPasswordHealth("testuser"))
+                .thenReturn(PasswordHealthMetricsResponse.builder().totalPasswords(0).categoryBreakdowns(List.of()).build());
+        when(dashboardService.getReusedPasswords("testuser"))
+                .thenReturn(ReusedPasswordResponse.builder().totalReusedGroups(0).totalAffectedEntries(0).reusedGroups(List.of()).build());
+        when(dashboardService.getPasswordAge("testuser"))
+                .thenReturn(PasswordAgeResponse.builder().totalPasswords(0).distribution(List.of()).build());
+        when(dashboardService.getSecurityTrends(eq("testuser"), eq(30)))
+                .thenReturn(SecurityTrendResponse.builder().trendPoints(List.of()).scoreChange(0).trendDirection("STABLE").periodLabel("30-day trend").build());
+
+        mockMvc.perform(get("/api/dashboard/security-score"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
+        mockMvc.perform(get("/api/dashboard/password-health"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
+        mockMvc.perform(get("/api/dashboard/reused-passwords"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
+        mockMvc.perform(get("/api/dashboard/password-age"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
+        mockMvc.perform(get("/api/dashboard/trends"))
+                .andExpect(content().contentTypeCompatibleWith("application/json"));
+    }
+
+    // ── Full field assertions on nested objects ───────────────────────────────
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void getPasswordHealth_CategoryBreakdown_ShouldAssertAllFields() throws Exception {
+        PasswordHealthMetricsResponse.PasswordCategoryBreakdown breakdown =
+                PasswordHealthMetricsResponse.PasswordCategoryBreakdown.builder()
+                        .categoryName("Work")
+                        .count(5)
+                        .averageScore(61.2)
+                        .weakCount(2)
+                        .build();
+
+        PasswordHealthMetricsResponse response = PasswordHealthMetricsResponse.builder()
+                .totalPasswords(5)
+                .strongCount(1).goodCount(1).fairCount(1).weakCount(1).veryWeakCount(1)
+                .averageStrengthScore(61.2)
+                .categoryBreakdowns(List.of(breakdown))
+                .build();
+
+        when(dashboardService.getPasswordHealth("testuser")).thenReturn(response);
+
+        mockMvc.perform(get("/api/dashboard/password-health"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.categoryBreakdowns[0].categoryName").value("Work"))
+                .andExpect(jsonPath("$.categoryBreakdowns[0].count").value(5))
+                .andExpect(jsonPath("$.categoryBreakdowns[0].averageScore").value(61.2))
+                .andExpect(jsonPath("$.categoryBreakdowns[0].weakCount").value(2));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void getReusedPasswords_NestedEntryFields_ShouldAllBePresent() throws Exception {
+        ReusedPasswordResponse.ReusedEntryInfo entry = ReusedPasswordResponse.ReusedEntryInfo.builder()
+                .entryId(42L).title("Facebook").username("fb@test.com").websiteUrl("https://facebook.com").build();
+
+        ReusedPasswordResponse response = ReusedPasswordResponse.builder()
+                .totalReusedGroups(1).totalAffectedEntries(1)
+                .reusedGroups(List.of(
+                        ReusedPasswordResponse.ReusedPasswordGroup.builder()
+                                .reuseCount(1).entries(List.of(entry)).build()))
+                .build();
+
+        when(dashboardService.getReusedPasswords("testuser")).thenReturn(response);
+
+        mockMvc.perform(get("/api/dashboard/reused-passwords"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.reusedGroups[0].entries[0].entryId").value(42))
+                .andExpect(jsonPath("$.reusedGroups[0].entries[0].title").value("Facebook"))
+                .andExpect(jsonPath("$.reusedGroups[0].entries[0].username").value("fb@test.com"))
+                .andExpect(jsonPath("$.reusedGroups[0].entries[0].websiteUrl").value("https://facebook.com"));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void getPasswordAge_AllDistributionBuckets_ShouldBeAsserted() throws Exception {
+        List<PasswordAgeResponse.AgeDistributionBucket> distribution = List.of(
+                PasswordAgeResponse.AgeDistributionBucket.builder().label("< 30 days").count(2).minDays(0).maxDays(29).build(),
+                PasswordAgeResponse.AgeDistributionBucket.builder().label("30-90 days").count(4).minDays(30).maxDays(90).build(),
+                PasswordAgeResponse.AgeDistributionBucket.builder().label("90-180 days").count(3).minDays(91).maxDays(180).build(),
+                PasswordAgeResponse.AgeDistributionBucket.builder().label("> 180 days").count(1).minDays(181).maxDays(Integer.MAX_VALUE).build()
+        );
+
+        when(dashboardService.getPasswordAge("testuser")).thenReturn(
+                PasswordAgeResponse.builder().totalPasswords(10).freshCount(2).agingCount(4)
+                        .oldCount(3).ancientCount(1).averageAgeInDays(88.0).distribution(distribution).build());
+
+        mockMvc.perform(get("/api/dashboard/password-age"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.distribution").isArray())
+                .andExpect(jsonPath("$.distribution.length()").value(4))
+                .andExpect(jsonPath("$.distribution[0].label").value("< 30 days"))
+                .andExpect(jsonPath("$.distribution[0].count").value(2))
+                .andExpect(jsonPath("$.distribution[0].minDays").value(0))
+                .andExpect(jsonPath("$.distribution[0].maxDays").value(29))
+                .andExpect(jsonPath("$.distribution[1].label").value("30-90 days"))
+                .andExpect(jsonPath("$.distribution[1].count").value(4))
+                .andExpect(jsonPath("$.distribution[2].label").value("90-180 days"))
+                .andExpect(jsonPath("$.distribution[2].count").value(3))
+                .andExpect(jsonPath("$.distribution[3].label").value("> 180 days"))
+                .andExpect(jsonPath("$.distribution[3].count").value(1));
+    }
+
+    @Test
+    @WithMockUser(username = "testuser")
+    void getSecurityTrends_TrendPointFields_ShouldAllBePresent() throws Exception {
+        SecurityTrendResponse.TrendDataPoint point = SecurityTrendResponse.TrendDataPoint.builder()
+                .recordedAt(LocalDateTime.of(2026, 2, 1, 10, 0))
+                .overallScore(78)
+                .weakPasswordsCount(3)
+                .reusedPasswordsCount(2)
+                .oldPasswordsCount(1)
+                .build();
+
+        SecurityTrendResponse response = SecurityTrendResponse.builder()
+                .trendPoints(List.of(point)).scoreChange(8)
+                .trendDirection("IMPROVING").periodLabel("30-day trend").build();
+
+        when(dashboardService.getSecurityTrends(eq("testuser"), eq(30))).thenReturn(response);
+
+        mockMvc.perform(get("/api/dashboard/trends"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.trendPoints[0].overallScore").value(78))
+                .andExpect(jsonPath("$.trendPoints[0].weakPasswordsCount").value(3))
+                .andExpect(jsonPath("$.trendPoints[0].reusedPasswordsCount").value(2))
+                .andExpect(jsonPath("$.trendPoints[0].oldPasswordsCount").value(1))
+                .andExpect(jsonPath("$.trendPoints[0].recordedAt").isNotEmpty());
+    }
 }
