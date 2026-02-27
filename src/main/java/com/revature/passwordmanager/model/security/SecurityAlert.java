@@ -55,7 +55,8 @@ public class SecurityAlert {
     TWO_FA_ENABLED,
     TWO_FA_DISABLED,
     ACCOUNT_LOCKED,
-    SENSITIVE_ACCESS
+    SENSITIVE_ACCESS,
+    PASSWORD_BREACHED
   }
 
   public enum Severity {
