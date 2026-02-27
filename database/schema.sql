@@ -287,6 +287,28 @@ CREATE INDEX idx_otp_tokens_user_id ON otp_tokens(user_id);
 CREATE INDEX idx_otp_tokens_expiry ON otp_tokens(expiry_date);
 
 -- =============================================================================
+-- 6. FEATURE 33: PASSWORD STRENGTH DASHBOARD (1 Table)
+-- =============================================================================
+
+-- Table: security_metrics_history
+CREATE TABLE security_metrics_history (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    overall_score INT NOT NULL,
+    weak_passwords_count INT DEFAULT 0,
+    reused_passwords_count INT DEFAULT 0,
+    old_passwords_count INT DEFAULT 0,
+    strong_passwords_count INT DEFAULT 0,
+    fair_passwords_count INT DEFAULT 0,
+    total_passwords_count INT DEFAULT 0,
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_security_metrics_user_id ON security_metrics_history(user_id);
+CREATE INDEX idx_security_metrics_recorded_at ON security_metrics_history(recorded_at);
+
+-- =============================================================================
 -- END OF SCHEMA
 -- =============================================================================
 
