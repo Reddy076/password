@@ -57,6 +57,8 @@ public class AuditLog {
     // Feature 35 — Secure Sharing
     SHARE_CREATED,
     SHARE_ACCESSED,
-    SHARE_REVOKED
+    SHARE_REVOKED,
+    // Feature 37 — Vault Timeline
+    TIMELINE_VIEWED
   }
 }
