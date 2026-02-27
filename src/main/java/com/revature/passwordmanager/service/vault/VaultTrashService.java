@@ -4,6 +4,8 @@ import com.revature.passwordmanager.dto.response.TrashEntryResponse;
 import com.revature.passwordmanager.exception.ResourceNotFoundException;
 import com.revature.passwordmanager.model.user.User;
 import com.revature.passwordmanager.model.vault.VaultEntry;
+import com.revature.passwordmanager.repository.ExpiryReminderRepository;
+import com.revature.passwordmanager.repository.PasswordExpiryStatusRepository;
 import com.revature.passwordmanager.repository.UserRepository;
 import com.revature.passwordmanager.repository.VaultTrashRepository;
 import com.revature.passwordmanager.repository.VaultSnapshotRepository;
@@ -33,6 +35,9 @@ public class VaultTrashService {
   private final VaultSnapshotRepository vaultSnapshotRepository;
   private final PasswordAnalysisRepository passwordAnalysisRepository;
   private final NotificationService notificationService;
+  // Feature 38: clean up expiry records on permanent delete
+  private final PasswordExpiryStatusRepository passwordExpiryStatusRepository;
+  private final ExpiryReminderRepository expiryReminderRepository;
 
   @Transactional(readOnly = true)
   public List<TrashEntryResponse> getTrashEntries(String username) {
@@ -92,6 +97,9 @@ public class VaultTrashService {
 
     vaultSnapshotRepository.deleteByVaultEntryId(entry.getId());
     passwordAnalysisRepository.deleteByVaultEntryId(entry.getId());
+    // Feature 38: clean up expiry records
+    expiryReminderRepository.deleteByVaultEntryId(entry.getId());
+    passwordExpiryStatusRepository.deleteByVaultEntryId(entry.getId());
     vaultTrashRepository.delete(entry);
 
     notificationService.createNotification(username, NotificationType.ACCOUNT_ACTIVITY,
@@ -109,6 +117,9 @@ public class VaultTrashService {
     trashedEntries.forEach(entry -> {
       vaultSnapshotRepository.deleteByVaultEntryId(entry.getId());
       passwordAnalysisRepository.deleteByVaultEntryId(entry.getId());
+      // Feature 38: clean up expiry records
+      expiryReminderRepository.deleteByVaultEntryId(entry.getId());
+      passwordExpiryStatusRepository.deleteByVaultEntryId(entry.getId());
     });
 
     vaultTrashRepository.deleteAll(trashedEntries);
@@ -128,6 +139,9 @@ public class VaultTrashService {
       expired.forEach(entry -> {
         vaultSnapshotRepository.deleteByVaultEntryId(entry.getId());
         passwordAnalysisRepository.deleteByVaultEntryId(entry.getId());
+        // Feature 38: clean up expiry records
+        expiryReminderRepository.deleteByVaultEntryId(entry.getId());
+        passwordExpiryStatusRepository.deleteByVaultEntryId(entry.getId());
       });
       vaultTrashRepository.deleteAll(expired);
       logger.info("Cleaned up {} expired trash entries", expired.size());
