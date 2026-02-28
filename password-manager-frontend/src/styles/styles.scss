@@ -1,0 +1,24 @@
+// ============================================================
+// REVAULTX — GLOBAL STYLES ENTRY POINT
+// Import order matters:
+// 1. Bootstrap variable overrides (BEFORE bootstrap)
+// 2. Bootstrap itself
+// 3. Our design tokens (CSS custom properties)
+// 4. Design system partials
+// ============================================================
+
+// 1. Override Bootstrap variables with pill design values
+@import 'bootstrap-override';
+
+// 2. Bootstrap 5 (uses our overridden variables)
+@import 'bootstrap/scss/bootstrap';
+
+// 3. Design tokens (CSS custom properties)
+@import 'variables';
+
+// 4. Design system partials
+@import 'typography';
+@import 'animations';
+@import 'pill-system';
+@import 'island-system';
+@import 'utilities';
